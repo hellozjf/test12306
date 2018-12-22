@@ -18,6 +18,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -198,7 +200,25 @@ public class Test12306Application {
     }
 
     private InitParamsVO getInitParams() {
-        String html = restTemplate.getForObject("https://kyfw.12306.cn/otn/leftTicket/init", String.class);
+
+        InitParamsVO initParamsVO = new InitParamsVO();
+//        String html = restTemplate.getForObject("https://kyfw.12306.cn/otn/leftTicket/init", String.class);
+        ResponseEntity<String> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/otn/leftTicket/init", String.class);
+        HttpHeaders httpHeaders = responseEntity.getHeaders();
+        log.debug("httpHeaders = {}", httpHeaders);
+        List<String> stringList = httpHeaders.get("Set-Cookie");
+        for (String string : stringList) {
+            log.debug("string = {}", string);
+
+            String jsessionIdPatternString = "^JSESSIONID=([^;]*); Path=.*$";
+            Pattern jsessionIdPattern = Pattern.compile(jsessionIdPatternString);
+            Matcher m = jsessionIdPattern.matcher(string);
+            if (m.matches()) {
+                log.debug("jsessionId = {}", m.group(1));
+                initParamsVO.setJsessionId(m.group(1));
+            }
+        }
+        String html = responseEntity.getBody();
         log.debug("{}", html);
         // 通过查看日志，我们能够知道我们需要取出CLeftTicketUrl这个变量的值，我们使用正则表达式去获取这个变量的值
         // 正则表达式参考http://www.runoob.com/java/java-regular-expressions.html
@@ -206,7 +226,6 @@ public class Test12306Application {
         Pattern cLeftTicketUrlPattern = Pattern.compile(cLeftTicketUrlPatternString);
         String stationNamePatternString = "^.*script.*src=\"(.*station_name[^\"]*)\".*$";
         Pattern stationNamePattern = Pattern.compile(stationNamePatternString);
-        InitParamsVO initParamsVO = new InitParamsVO();
         try (
                 StringReader stringReader = new StringReader(html);
                 BufferedReader bufferedReader = new BufferedReader(stringReader)

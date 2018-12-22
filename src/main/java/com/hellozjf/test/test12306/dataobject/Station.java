@@ -33,13 +33,17 @@ public class Station extends BaseEntity {
     }
 
     /**
-     * 例如杭州东是44
+     * 例如杭州东是hzd
      */
-    private Integer number;
+    private String code1;
     /**
      * 例如杭州东是杭州东
      */
     private String name;
+    /**
+     * 例如杭州东是HGH
+     */
+    private String code2;
     /**
      * 例如杭州东是hangzhoudong
      */
@@ -49,11 +53,7 @@ public class Station extends BaseEntity {
      */
     private String spellShort;
     /**
-     * 例如杭州东是hzd
+     * 例如杭州东是44
      */
-    private String code1;
-    /**
-     * 例如杭州东是HGH
-     */
-    private String code2;
+    private Integer number;
 }

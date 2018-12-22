@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 public class InitParamsVO {
     private String cLeftTicketUri;
     private String stationNameUri;
+    private String jsessionId;
 }
