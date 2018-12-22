@@ -7,8 +7,10 @@ import com.hellozjf.test.test12306.dataobject.Station;
 import com.hellozjf.test.test12306.dataobject.StationVersion;
 import com.hellozjf.test.test12306.repository.StationRepository;
 import com.hellozjf.test.test12306.repository.StationVersionRepository;
+import com.hellozjf.test.test12306.util.HttpHeaderUtils;
 import com.hellozjf.test.test12306.util.SeatUtils;
 import com.hellozjf.test.test12306.util.TrainTypeUtils;
+import com.hellozjf.test.test12306.util.UUIDUtils;
 import com.hellozjf.test.test12306.vo.InitParamsVO;
 import com.hellozjf.test.test12306.vo.TrainInfoVO;
 import lombok.extern.slf4j.Slf4j;
@@ -19,15 +21,19 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.util.IdGenerator;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,41 +71,83 @@ public class Test12306Application {
     @Bean
     public CommandLineRunner commandLineRunner() {
         return args -> {
-            InitParamsVO initParamsVO = getInitParams();
-            initStations(initParamsVO.getStationNameUri());
-            List<TrainInfoVO> trainInfoVOList = getTrainList(
-                    initParamsVO.getCLeftTicketUri(),
-                    "2019-01-01",
-                    "宁波",
-                    "杭州东"
-            );
-            log.debug("trainInfoVOList.size() = {}", trainInfoVOList.size());
-            List<TrainInfoVO> wantedTrainInfoVOList = getWantedTrainInfoVOList(
-                    trainInfoVOList,
-                    "12:00",
-                    "21:00",
-                    null,
-                    false,
-                    false,
-                    true,
-                    false,
-                    false,
-                    false,
-                    false,
-                    false,
-                    true,
-                    false
-            );
-            log.debug("wantedTrainInfoVOList.size() = {}", wantedTrainInfoVOList.size());
-            for (TrainInfoVO trainInfoVO : wantedTrainInfoVOList) {
-                log.debug("trainCode={} deptTime={} arrTime={} secondClassSeat={}",
-                        trainInfoVO.getTrainCode(),
-                        trainInfoVO.getDepTime(),
-                        trainInfoVO.getArrTime(),
-                        trainInfoVO.getSecondClassSeat(),
-                        trainInfoVO.getNoSeat());
-            }
+            captchaImage();
         };
+    }
+
+    private void queryWantedTickets() throws Exception {
+        InitParamsVO initParamsVO = getInitParams();
+        initStations(initParamsVO.getStationNameUri());
+        List<TrainInfoVO> trainInfoVOList = getTrainList(
+                initParamsVO.getCLeftTicketUri(),
+                "2019-01-01",
+                "宁波",
+                "杭州东"
+        );
+        log.debug("trainInfoVOList.size() = {}", trainInfoVOList.size());
+        List<TrainInfoVO> wantedTrainInfoVOList = getWantedTrainInfoVOList(
+                trainInfoVOList,
+                "12:00",
+                "21:00",
+                null,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false
+        );
+        log.debug("wantedTrainInfoVOList.size() = {}", wantedTrainInfoVOList.size());
+        for (TrainInfoVO trainInfoVO : wantedTrainInfoVOList) {
+            log.debug("trainCode={} deptTime={} arrTime={} secondClassSeat={}",
+                    trainInfoVO.getTrainCode(),
+                    trainInfoVO.getDepTime(),
+                    trainInfoVO.getArrTime(),
+                    trainInfoVO.getSecondClassSeat(),
+                    trainInfoVO.getNoSeat());
+        }
+    }
+
+    /**
+     * 从这个函数可以获取验证码图片
+     */
+    private void captchaImage() {
+        ResponseEntity<byte[]> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/passport/captcha/captcha-image", byte[].class);
+        HttpHeaders httpHeaders = responseEntity.getHeaders();
+        log.debug("httpHeaders = {}", httpHeaders);
+        byte[] bytes = responseEntity.getBody();
+        log.debug(Arrays.toString(bytes));
+        String fileName = UUIDUtils.genId() + ".jpg";
+        // 如果没有images文件夹，那就创建一个
+        File folder = new File("images");
+        if (! folder.exists()) {
+            folder.mkdir();
+        } else if (! folder.isDirectory()) {
+            folder.delete();
+            folder.mkdir();
+        }
+        try (FileOutputStream out = new FileOutputStream("images/" + fileName)) {
+            out.write(bytes);
+        } catch (Exception e) {
+            log.error("e = {}", e);
+        }
+    }
+
+    /**
+     * 从这个函数可以获取到登录所需要的jsessionid
+     */
+    private void loginInit() {
+        ResponseEntity<String> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/otn/login/init", String.class);
+        HttpHeaders httpHeaders = responseEntity.getHeaders();
+        log.debug("httpHeaders = {}", httpHeaders);
+        String jsessionId = HttpHeaderUtils.getJsessionId(httpHeaders);
+        log.debug("jsessionId = {}", jsessionId);
+        String body = responseEntity.getBody();
+        log.debug("body = {}", body);
     }
 
     /**
@@ -202,24 +250,12 @@ public class Test12306Application {
     private InitParamsVO getInitParams() {
 
         InitParamsVO initParamsVO = new InitParamsVO();
-//        String html = restTemplate.getForObject("https://kyfw.12306.cn/otn/leftTicket/init", String.class);
         ResponseEntity<String> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/otn/leftTicket/init", String.class);
         HttpHeaders httpHeaders = responseEntity.getHeaders();
         log.debug("httpHeaders = {}", httpHeaders);
-        List<String> stringList = httpHeaders.get("Set-Cookie");
-        for (String string : stringList) {
-            log.debug("string = {}", string);
-
-            String jsessionIdPatternString = "^JSESSIONID=([^;]*); Path=.*$";
-            Pattern jsessionIdPattern = Pattern.compile(jsessionIdPatternString);
-            Matcher m = jsessionIdPattern.matcher(string);
-            if (m.matches()) {
-                log.debug("jsessionId = {}", m.group(1));
-                initParamsVO.setJsessionId(m.group(1));
-            }
-        }
-        String html = responseEntity.getBody();
-        log.debug("{}", html);
+        initParamsVO.setJsessionId(HttpHeaderUtils.getJsessionId(httpHeaders));
+        String body = responseEntity.getBody();
+        log.debug("body = {}", body);
         // 通过查看日志，我们能够知道我们需要取出CLeftTicketUrl这个变量的值，我们使用正则表达式去获取这个变量的值
         // 正则表达式参考http://www.runoob.com/java/java-regular-expressions.html
         String cLeftTicketUrlPatternString = "^\\s*var\\s*CLeftTicketUrl\\s*=\\s*'(.*)'\\s*;\\s*$";
@@ -227,7 +263,7 @@ public class Test12306Application {
         String stationNamePatternString = "^.*script.*src=\"(.*station_name[^\"]*)\".*$";
         Pattern stationNamePattern = Pattern.compile(stationNamePatternString);
         try (
-                StringReader stringReader = new StringReader(html);
+                StringReader stringReader = new StringReader(body);
                 BufferedReader bufferedReader = new BufferedReader(stringReader)
         ) {
             String line;
