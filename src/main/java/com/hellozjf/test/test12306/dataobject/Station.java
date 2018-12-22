@@ -8,6 +8,8 @@ import javax.persistence.Entity;
 
 /**
  * @author Jingfeng Zhou
+ *
+ * 这张表主要用于存放12306各个火车站点的名称和编码等信息，它的版本位于StationVersion表
  */
 @Entity
 @Data
@@ -18,9 +20,9 @@ public class Station extends BaseEntity {
     public static Station getFromText(String text) {
         Station station = new Station();
         String[] texts = text.split("\\|");
-        for (String t : texts) {
-            log.debug("t = {}", t);
-        }
+//        for (String t : texts) {
+//            log.debug("t = {}", t);
+//        }
         station.code1 = texts[0];
         station.name = texts[1];
         station.code2 = texts[2];
