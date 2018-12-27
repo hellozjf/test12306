@@ -14,16 +14,22 @@ import com.hellozjf.test.test12306.repository.VerificationCodeRepository;
 import com.hellozjf.test.test12306.util.*;
 import com.hellozjf.test.test12306.vo.*;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -92,65 +98,143 @@ public class Test12306Application {
     @Autowired
     private VerificationCodeRepository verificationCodeRepository;
 
+    /**
+     * 获取图片并存放在文件夹中
+     */
+    private void getPictures() {
+        for (int i = 0; i < 10000; i++) {
+
+            log.info("start loop {}", i);
+
+            DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmssSSS");
+            Date date = new Date();
+            String folderName = dateFormat.format(date);
+
+            try {
+
+                VerificationCode verificationCode = new VerificationCode();
+                verificationCode.setFolderName(folderName);
+
+                File jpegFile = captchaImage(folderName);
+                getQuestionImage(jpegFile);
+//                    String question = getJpegQuestion(jpegFile);
+//                    log.debug("question = {}", question);
+//                    if (StringUtils.isEmpty(question)) {
+//                        jpegFile.getParentFile().delete();
+//                        Thread.sleep(60 * 1000);
+//                        continue;
+//                    }
+//                    verificationCode.setQuestion(question);
+
+                writeSubImage(jpegFile, 0, 0);
+                writeSubImage(jpegFile, 1, 0);
+                writeSubImage(jpegFile, 2, 0);
+                writeSubImage(jpegFile, 3, 0);
+                writeSubImage(jpegFile, 0, 1);
+                writeSubImage(jpegFile, 1, 1);
+                writeSubImage(jpegFile, 2, 1);
+                writeSubImage(jpegFile, 3, 1);
+//                    List<String> keywordList = getSubImageKeywordList(jpegFile, 0, 0);
+//                    verificationCode.setPic00Desc(keywordList.toString());
+//                    keywordList = getSubImageKeywordList(jpegFile, 1, 0);
+//                    verificationCode.setPic01Desc(keywordList.toString());
+//                    keywordList = getSubImageKeywordList(jpegFile, 2, 0);
+//                    verificationCode.setPic02Desc(keywordList.toString());
+//                    keywordList = getSubImageKeywordList(jpegFile, 3, 0);
+//                    verificationCode.setPic03Desc(keywordList.toString());
+//                    keywordList = getSubImageKeywordList(jpegFile, 0, 1);
+//                    verificationCode.setPic10Desc(keywordList.toString());
+//                    keywordList = getSubImageKeywordList(jpegFile, 1, 1);
+//                    verificationCode.setPic11Desc(keywordList.toString());
+//                    keywordList = getSubImageKeywordList(jpegFile, 2, 1);
+//                    verificationCode.setPic12Desc(keywordList.toString());
+//                    keywordList = getSubImageKeywordList(jpegFile, 3, 1);
+//                    verificationCode.setPic13Desc(keywordList.toString());
+
+                // 未处理
+                verificationCode.setDisposeResult("0");
+
+                // 将结果存入数据库中
+                verificationCodeRepository.save(verificationCode);
+
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                log.error("e = {}", e);
+                File folder = new File(customConfig.getForder12306() + "/" + folderName);
+                File[] files = folder.listFiles();
+                for (File file : files) {
+                    file.delete();
+                }
+                folder.delete();
+
+                try {
+                    Thread.sleep(60 * 1000);
+                } catch (InterruptedException e1) {
+                    log.error("e1 = {}", e1);
+                }
+            }
+        }
+    }
+
+    /**
+     * 从数据库中读取所需的图片所在文件夹，然后从网络上获取图片，再交给http://littlebigluo.qicp.net:47720/进行解析
+     */
+    private void getChoose() {
+
+        for (int i = 0; i < 10000; i++) {
+
+            VerificationCode verificationCode = verificationCodeRepository.findTopByChooseNullOrderByFolderNameAsc();
+
+            try {
+
+                // 下载图片
+                String url = "https://aliyun.hellozjf.com:7004/Pictures/12306/" + verificationCode.getFolderName() + "/full.jpg";
+                File file = FileUtils.downloadFile(url, "full.jpg");
+
+                HttpHeaders headers = new HttpHeaders();
+                MediaType contentType = MediaType.parseMediaType("multipart/form-data");
+                headers.setContentType(contentType);
+                MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
+                FileSystemResource fileSystemResource = new FileSystemResource(file);
+                form.add("file", fileSystemResource);
+                HttpEntity<MultiValueMap<String, Object>> files = new HttpEntity<>(form, headers);
+                String result = restTemplate.postForObject("http://littlebigluo.qicp.net:47720/", files, String.class);
+                log.debug("result = {}", result);
+
+                // 从文档中获取B标签的内容
+                Document document = Jsoup.parse(result);
+                Elements elements = document.body().getElementsByTag("B");
+                String data = elements.text();
+                log.debug("elements = {}, data = {}", elements, data);
+
+                String choose = data.replace(" ", ",");
+                verificationCode.setChoose(choose);
+                verificationCodeRepository.save(verificationCode);
+
+                Thread.sleep(1 * 1000);
+
+            } catch (Exception e) {
+                log.error("e = {}", e);
+                try {
+                    Thread.sleep(60 * 1000);
+                } catch (InterruptedException e1) {
+                    log.error("e1 = {}", e1);
+                }
+            }
+
+        }
+    }
+
     @Bean
     public CommandLineRunner commandLineRunner() {
         return args -> {
-
-            for (int i = 0; i < 50000; i++) {
-
-
-                try {
-                    log.debug("start loop {}", i);
-
-                    DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmssSSS");
-                    Date date = new Date();
-                    String folderName = dateFormat.format(date);
-
-                    VerificationCode verificationCode = new VerificationCode();
-                    verificationCode.setFolderName(folderName);
-
-                    File jpegFile = captchaImage(folderName);
-                    String question = getJpegQuestion(jpegFile);
-                    log.debug("question = {}", question);
-                    if (StringUtils.isEmpty(question)) {
-                        jpegFile.getParentFile().delete();
-                        continue;
-                    }
-                    verificationCode.setQuestion(question);
-
-                    List<String> keywordList = getSubImageKeywordList(jpegFile, 0, 0);
-                    verificationCode.setPic00Desc(keywordList.toString());
-                    keywordList = getSubImageKeywordList(jpegFile, 1, 0);
-                    verificationCode.setPic01Desc(keywordList.toString());
-                    keywordList = getSubImageKeywordList(jpegFile, 2, 0);
-                    verificationCode.setPic02Desc(keywordList.toString());
-                    keywordList = getSubImageKeywordList(jpegFile, 3, 0);
-                    verificationCode.setPic03Desc(keywordList.toString());
-                    keywordList = getSubImageKeywordList(jpegFile, 0, 1);
-                    verificationCode.setPic10Desc(keywordList.toString());
-                    keywordList = getSubImageKeywordList(jpegFile, 1, 1);
-                    verificationCode.setPic11Desc(keywordList.toString());
-                    keywordList = getSubImageKeywordList(jpegFile, 2, 1);
-                    verificationCode.setPic12Desc(keywordList.toString());
-                    keywordList = getSubImageKeywordList(jpegFile, 3, 1);
-                    verificationCode.setPic13Desc(keywordList.toString());
-
-                    // 未处理
-                    verificationCode.setDisposeResult("0");
-
-                    // 将结果存入数据库中
-                    verificationCodeRepository.save(verificationCode);
-
-                    Thread.sleep(1000);
-                } catch (Exception e) {
-                    log.error("e = {}", e);
-                }
-            }
+            getChoose();
         };
     }
 
     /**
      * 获取两个文本的相似度
+     *
      * @param text1
      * @param text2
      * @return
@@ -168,6 +252,24 @@ public class Test12306Application {
     }
 
     /**
+     * 将子图片下载到文件夹中
+     *
+     * @param jpegFile
+     * @param x
+     * @param y
+     * @return
+     * @throws Exception
+     */
+    public BufferedImage writeSubImage(File jpegFile, int x, int y) throws Exception {
+        BufferedImage bufImage = ImageIO.read(jpegFile);
+        int left = 5 + (67 + 5) * x;
+        int top = 41 + (67 + 5) * y;
+        BufferedImage subImage = bufImage.getSubimage(left, top, 67, 67);
+        ImageIO.write(subImage, "JPEG", new File(jpegFile.getParent(), "pic" + y + x + ".jpg"));
+        return subImage;
+    }
+
+    /**
      * 从JPEG文件中，获取8张子图
      *
      * @param jpegFile
@@ -176,11 +278,9 @@ public class Test12306Application {
      * @return
      */
     public List<String> getSubImageKeywordList(File jpegFile, int x, int y) throws Exception {
-        BufferedImage bufImage = ImageIO.read(jpegFile);
-        int left = 5 + (67 + 5) * x;
-        int top = 41 + (67 + 5) * y;
-        BufferedImage subImage = bufImage.getSubimage(left, top, 67, 67);
-        ImageIO.write(subImage, "JPEG", new File(jpegFile.getParent(), "pic" + y + x + ".jpg"));
+
+        // 将子图片下载到文件夹中
+        BufferedImage subImage = writeSubImage(jpegFile, x, y);
 
         // 识别图片
         String url = String.format("https://aip.baidubce.com/rest/2.0/image-classify/v2/advanced_general?access_token=%s",
@@ -194,27 +294,34 @@ public class Test12306Application {
         return keywordList;
     }
 
+    public BufferedImage getQuestionImage(File jpegFile) throws Exception {
+
+        BufferedImage bufImage = ImageIO.read(jpegFile);
+
+        // 获取右上角的文字信息
+        BufferedImage subImage = bufImage.getSubimage(119, 0, 47 * 2, 30);
+        ImageIO.write(subImage, "JPEG", new File(jpegFile.getParent(), "question.jpg"));
+
+        return subImage;
+    }
+
     /**
      * 获取验证码图片中的问题
      *
-     * @param jpegFile      要解析的jpg文件
+     * @param jpegFile 要解析的jpg文件
      * @return
      * @throws Exception
      */
     public String getJpegQuestion(File jpegFile) throws Exception {
 
-        List<String> questions = new ArrayList<>();
-        BufferedImage bufImage = ImageIO.read(jpegFile);
-
-        // 获取右上角的文字信息
-        BufferedImage subImage1 = bufImage.getSubimage(119, 0, 47 * 2, 30);
-        ImageIO.write(subImage1, "JPEG", new File(jpegFile.getParent(), "question.jpg"));
+        // 获取问题图片
+        BufferedImage subImage = getQuestionImage(jpegFile);
 
         // 识别文字
         String url = String.format("https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=%s",
                 baiduTokenVO.getAccessToken());
         HttpEntity httpEntity = HttpEntityUtils.getHttpEntity(MediaType.APPLICATION_FORM_URLENCODED, ImmutableMap.of(
-                "image", ImageUtils.changeJpegToBase64(subImage1)
+                "image", ImageUtils.changeJpegToBase64(subImage)
         ));
         OrcResultVO orcResultVO = restTemplate.postForObject(url, httpEntity, OrcResultVO.class);
         return orcResultVO.getWordsResult().get(0).getWords();
