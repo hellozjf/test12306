@@ -7,8 +7,10 @@ import com.hellozjf.test.test12306.config.CustomConfig;
 import com.hellozjf.test.test12306.constant.TrainTypeEnum;
 import com.hellozjf.test.test12306.dataobject.Station;
 import com.hellozjf.test.test12306.dataobject.StationVersion;
+import com.hellozjf.test.test12306.dataobject.VerificationCode;
 import com.hellozjf.test.test12306.repository.StationRepository;
 import com.hellozjf.test.test12306.repository.StationVersionRepository;
+import com.hellozjf.test.test12306.repository.VerificationCodeRepository;
 import com.hellozjf.test.test12306.util.*;
 import com.hellozjf.test.test12306.vo.*;
 import lombok.extern.slf4j.Slf4j;
@@ -31,10 +33,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -88,15 +89,61 @@ public class Test12306Application {
     @Autowired
     private BaiduTokenVO baiduTokenVO;
 
+    @Autowired
+    private VerificationCodeRepository verificationCodeRepository;
+
     @Bean
     public CommandLineRunner commandLineRunner() {
         return args -> {
-            File jpegFile = captchaImage();
-            List<String> questionList = getJpegQuestions(jpegFile);
-            log.debug("questionList = {}", questionList);
-            for (int y = 0; y < 2; y++) {
-                for (int x = 0; x < 4; x++) {
-//                    List<String> keywordList = getSubImageKeywordList(jpegFile, x, y);
+
+            for (int i = 0; i < 50000; i++) {
+
+
+                try {
+                    log.debug("start loop {}", i);
+
+                    DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmssSSS");
+                    Date date = new Date();
+                    String folderName = dateFormat.format(date);
+
+                    VerificationCode verificationCode = new VerificationCode();
+                    verificationCode.setFolderName(folderName);
+
+                    File jpegFile = captchaImage(folderName);
+                    String question = getJpegQuestion(jpegFile);
+                    log.debug("question = {}", question);
+                    if (StringUtils.isEmpty(question)) {
+                        jpegFile.getParentFile().delete();
+                        continue;
+                    }
+                    verificationCode.setQuestion(question);
+
+                    List<String> keywordList = getSubImageKeywordList(jpegFile, 0, 0);
+                    verificationCode.setPic00Desc(keywordList.toString());
+                    keywordList = getSubImageKeywordList(jpegFile, 1, 0);
+                    verificationCode.setPic01Desc(keywordList.toString());
+                    keywordList = getSubImageKeywordList(jpegFile, 2, 0);
+                    verificationCode.setPic02Desc(keywordList.toString());
+                    keywordList = getSubImageKeywordList(jpegFile, 3, 0);
+                    verificationCode.setPic03Desc(keywordList.toString());
+                    keywordList = getSubImageKeywordList(jpegFile, 0, 1);
+                    verificationCode.setPic10Desc(keywordList.toString());
+                    keywordList = getSubImageKeywordList(jpegFile, 1, 1);
+                    verificationCode.setPic11Desc(keywordList.toString());
+                    keywordList = getSubImageKeywordList(jpegFile, 2, 1);
+                    verificationCode.setPic12Desc(keywordList.toString());
+                    keywordList = getSubImageKeywordList(jpegFile, 3, 1);
+                    verificationCode.setPic13Desc(keywordList.toString());
+
+                    // 未处理
+                    verificationCode.setDisposeResult("0");
+
+                    // 将结果存入数据库中
+                    verificationCodeRepository.save(verificationCode);
+
+                    Thread.sleep(1000);
+                } catch (Exception e) {
+                    log.error("e = {}", e);
                 }
             }
         };
@@ -133,7 +180,7 @@ public class Test12306Application {
         int left = 5 + (67 + 5) * x;
         int top = 41 + (67 + 5) * y;
         BufferedImage subImage = bufImage.getSubimage(left, top, 67, 67);
-        ImageIO.write(subImage, "JPEG", new File("images/tmp" + y + x + ".jpg"));
+        ImageIO.write(subImage, "JPEG", new File(jpegFile.getParent(), "pic" + y + x + ".jpg"));
 
         // 识别图片
         String url = String.format("https://aip.baidubce.com/rest/2.0/image-classify/v2/advanced_general?access_token=%s",
@@ -145,6 +192,32 @@ public class Test12306Application {
         List<String> keywordList = ImageClassifyVOUtils.getKeywordList(imageClassifyVO);
         log.debug("keywordList = {}", keywordList);
         return keywordList;
+    }
+
+    /**
+     * 获取验证码图片中的问题
+     *
+     * @param jpegFile      要解析的jpg文件
+     * @return
+     * @throws Exception
+     */
+    public String getJpegQuestion(File jpegFile) throws Exception {
+
+        List<String> questions = new ArrayList<>();
+        BufferedImage bufImage = ImageIO.read(jpegFile);
+
+        // 获取右上角的文字信息
+        BufferedImage subImage1 = bufImage.getSubimage(119, 0, 47 * 2, 30);
+        ImageIO.write(subImage1, "JPEG", new File(jpegFile.getParent(), "question.jpg"));
+
+        // 识别文字
+        String url = String.format("https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=%s",
+                baiduTokenVO.getAccessToken());
+        HttpEntity httpEntity = HttpEntityUtils.getHttpEntity(MediaType.APPLICATION_FORM_URLENCODED, ImmutableMap.of(
+                "image", ImageUtils.changeJpegToBase64(subImage1)
+        ));
+        OrcResultVO orcResultVO = restTemplate.postForObject(url, httpEntity, OrcResultVO.class);
+        return orcResultVO.getWordsResult().get(0).getWords();
     }
 
     /**
@@ -252,6 +325,35 @@ public class Test12306Application {
             folder.mkdir();
         }
         File file = new File("images/" + fileName);
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            out.write(bytes);
+        } catch (Exception e) {
+            log.error("e = {}", e);
+        }
+        return file;
+    }
+
+    /**
+     * 从这个函数可以从12306获取验证码图片，并保存到本地images文件夹下面
+     *
+     * @return 下载好的File对象
+     */
+    private File captchaImage(String folderName) {
+        ResponseEntity<byte[]> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/passport/captcha/captcha-image", byte[].class);
+        HttpHeaders httpHeaders = responseEntity.getHeaders();
+        log.debug("httpHeaders = {}", httpHeaders);
+        byte[] bytes = responseEntity.getBody();
+        log.debug(Arrays.toString(bytes));
+        String fileName = "full.jpg";
+        // 如果没有images文件夹，那就创建一个
+        File folder = new File(customConfig.getForder12306() + "/" + folderName);
+        if (!folder.exists()) {
+            folder.mkdir();
+        } else if (!folder.isDirectory()) {
+            folder.delete();
+            folder.mkdir();
+        }
+        File file = new File(folder, fileName);
         try (FileOutputStream out = new FileOutputStream(file)) {
             out.write(bytes);
         } catch (Exception e) {
