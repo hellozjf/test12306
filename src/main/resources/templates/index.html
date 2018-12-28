@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mark</title>
+    <style>
+        .picAll {
+            margin: 10px;
+        }
+
+        .pic {
+            padding: 5px;
+        }
+
+        .check {
+            padding: 0px;
+            border: 5px solid red;
+        }
+    </style>
+</head>
+<body>
+
+<p>Quesion:</p>
+<img id="idImgQuestion" src="" alt="">
+<label for="idInputQuestion">问题的内容是：</label>
+<input id="idInputQuestion" type="text">
+
+<p>Select:</p>
+
+<input id="idFolderName" style="display: none;">
+<div id="idPicAll" class="picAll">
+    <div>
+        <img class="pic" id="idImgPic00" src="" alt="">
+        <img class="pic" id="idImgPic01" src="" alt="">
+        <img class="pic" id="idImgPic02" src="" alt="">
+        <img class="pic" id="idImgPic03" src="" alt="">
+    </div>
+
+    <div>
+        <img class="pic" id="idImgPic10" src="" alt="">
+        <img class="pic" id="idImgPic11" src="" alt="">
+        <img class="pic" id="idImgPic12" src="" alt="">
+        <img class="pic" id="idImgPic13" src="" alt="">
+    </div>
+</div>
+
+<div>
+    <button id="idSaveContinue">保存继续</button>
+    <!--<button id="idSave">保存</button>-->
+    <!--<button id="previous">上一个</button>-->
+    <!--<button id="next">下一个</button>-->
+</div>
+
+<!--<div>-->
+    <!--<label for="idInputFolderName">输入图片坐标</label>-->
+    <!--<input id="idInputFolderName" type="text">-->
+    <!--<button>跳转</button>-->
+<!--</div>-->
+
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script>
+
+    function updateComponents(data) {
+
+        // 清除问题
+        $('#idInputQuestion').val('');
+
+        // 清除选择状态
+        var allIdPic = $('#idPicAll img');
+        for (var i = 0; i < allIdPic.length; i++) {
+            var idPic = $(allIdPic[i]);
+            idPic.removeClass('check')
+        }
+
+        $('#idFolderName').val(data.data.folderName);
+        $('#idImgQuestion').attr('src', data.data.questionUrl);
+        $('#idImgPic00').attr('src', data.data.pic00Url);
+        $('#idImgPic01').attr('src', data.data.pic01Url);
+        $('#idImgPic02').attr('src', data.data.pic02Url);
+        $('#idImgPic03').attr('src', data.data.pic03Url);
+        $('#idImgPic10').attr('src', data.data.pic10Url);
+        $('#idImgPic11').attr('src', data.data.pic11Url);
+        $('#idImgPic12').attr('src', data.data.pic12Url);
+        $('#idImgPic13').attr('src', data.data.pic13Url);
+    }
+
+    function initUnanswerQuestion() {
+        $.ajax({
+            url: '/getUncheckQuestion',
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                updateComponents(data);
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        initUnanswerQuestion();
+    });
+
+    $('#idPicAll img').click(function () {
+        var item = $(this);
+        console.debug(this);
+        console.debug(item);
+        item.toggleClass('check');
+    });
+
+    $('#idSaveContinue').click(function () {
+
+        // 判断问题有没有填写
+        if ($('#idInputQuestion').val() === '') {
+            alert('请填写问题');
+            return;
+        }
+
+        // 判断图片有没有选择
+        var allIdPic = $('#idPicAll img');
+        var checkList = [];
+        for (var i = 0; i < allIdPic.length; i++) {
+            var idPic = $(allIdPic[i]);
+            console.debug(idPic);
+            if (idPic.hasClass('check')) {
+                checkList.push(i + 1);
+            }
+        }
+        if (checkList.length === 0) {
+            alert('请选择答案');
+            return;
+        }
+
+        $.ajax({
+            url: '/answerQuestion',
+            type: 'POST',
+            data: {
+                folderName: $('#idFolderName').val(),
+                question: $('#idInputQuestion').val(),
+                choose: checkList.join(',')
+            },
+            dataType: 'json',
+            success: function (data) {
+                updateComponents(data);
+            }
+        });
+    });
+</script>
+</body>
+</html>

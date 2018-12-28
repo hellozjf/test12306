@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.hellozjf.test.test12306.config.CustomConfig;
+import com.hellozjf.test.test12306.constant.PictureNames;
 import com.hellozjf.test.test12306.constant.TrainTypeEnum;
 import com.hellozjf.test.test12306.dataobject.Station;
 import com.hellozjf.test.test12306.dataobject.StationVersion;
@@ -14,6 +15,7 @@ import com.hellozjf.test.test12306.repository.VerificationCodeRepository;
 import com.hellozjf.test.test12306.util.*;
 import com.hellozjf.test.test12306.vo.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -24,10 +26,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -35,10 +34,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.StringReader;
+import java.io.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -102,7 +98,7 @@ public class Test12306Application {
      * 获取图片并存放在文件夹中
      */
     private void getPictures() {
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1; i++) {
 
             log.info("start loop {}", i);
 
@@ -116,7 +112,7 @@ public class Test12306Application {
                 verificationCode.setFolderName(folderName);
 
                 File jpegFile = captchaImage(folderName);
-                getQuestionImage(jpegFile);
+                JpgUtils.getQuestionImage(jpegFile);
 //                    String question = getJpegQuestion(jpegFile);
 //                    log.debug("question = {}", question);
 //                    if (StringUtils.isEmpty(question)) {
@@ -126,14 +122,14 @@ public class Test12306Application {
 //                    }
 //                    verificationCode.setQuestion(question);
 
-                writeSubImage(jpegFile, 0, 0);
-                writeSubImage(jpegFile, 1, 0);
-                writeSubImage(jpegFile, 2, 0);
-                writeSubImage(jpegFile, 3, 0);
-                writeSubImage(jpegFile, 0, 1);
-                writeSubImage(jpegFile, 1, 1);
-                writeSubImage(jpegFile, 2, 1);
-                writeSubImage(jpegFile, 3, 1);
+                JpgUtils.writeSubImage(jpegFile, 0, 0);
+                JpgUtils.writeSubImage(jpegFile, 1, 0);
+                JpgUtils.writeSubImage(jpegFile, 2, 0);
+                JpgUtils.writeSubImage(jpegFile, 3, 0);
+                JpgUtils.writeSubImage(jpegFile, 0, 1);
+                JpgUtils.writeSubImage(jpegFile, 1, 1);
+                JpgUtils.writeSubImage(jpegFile, 2, 1);
+                JpgUtils.writeSubImage(jpegFile, 3, 1);
 //                    List<String> keywordList = getSubImageKeywordList(jpegFile, 0, 0);
 //                    verificationCode.setPic00Desc(keywordList.toString());
 //                    keywordList = getSubImageKeywordList(jpegFile, 1, 0);
@@ -228,7 +224,6 @@ public class Test12306Application {
     @Bean
     public CommandLineRunner commandLineRunner() {
         return args -> {
-            getChoose();
         };
     }
 
@@ -252,24 +247,6 @@ public class Test12306Application {
     }
 
     /**
-     * 将子图片下载到文件夹中
-     *
-     * @param jpegFile
-     * @param x
-     * @param y
-     * @return
-     * @throws Exception
-     */
-    public BufferedImage writeSubImage(File jpegFile, int x, int y) throws Exception {
-        BufferedImage bufImage = ImageIO.read(jpegFile);
-        int left = 5 + (67 + 5) * x;
-        int top = 41 + (67 + 5) * y;
-        BufferedImage subImage = bufImage.getSubimage(left, top, 67, 67);
-        ImageIO.write(subImage, "JPEG", new File(jpegFile.getParent(), "pic" + y + x + ".jpg"));
-        return subImage;
-    }
-
-    /**
      * 从JPEG文件中，获取8张子图
      *
      * @param jpegFile
@@ -280,7 +257,7 @@ public class Test12306Application {
     public List<String> getSubImageKeywordList(File jpegFile, int x, int y) throws Exception {
 
         // 将子图片下载到文件夹中
-        BufferedImage subImage = writeSubImage(jpegFile, x, y);
+        BufferedImage subImage = JpgUtils.writeSubImage(jpegFile, x, y);
 
         // 识别图片
         String url = String.format("https://aip.baidubce.com/rest/2.0/image-classify/v2/advanced_general?access_token=%s",
@@ -294,17 +271,6 @@ public class Test12306Application {
         return keywordList;
     }
 
-    public BufferedImage getQuestionImage(File jpegFile) throws Exception {
-
-        BufferedImage bufImage = ImageIO.read(jpegFile);
-
-        // 获取右上角的文字信息
-        BufferedImage subImage = bufImage.getSubimage(119, 0, 47 * 2, 30);
-        ImageIO.write(subImage, "JPEG", new File(jpegFile.getParent(), "question.jpg"));
-
-        return subImage;
-    }
-
     /**
      * 获取验证码图片中的问题
      *
@@ -315,7 +281,7 @@ public class Test12306Application {
     public String getJpegQuestion(File jpegFile) throws Exception {
 
         // 获取问题图片
-        BufferedImage subImage = getQuestionImage(jpegFile);
+        BufferedImage subImage = JpgUtils.getQuestionImage(jpegFile);
 
         // 识别文字
         String url = String.format("https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=%s",
@@ -446,12 +412,13 @@ public class Test12306Application {
      * @return 下载好的File对象
      */
     private File captchaImage(String folderName) {
-        ResponseEntity<byte[]> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/passport/captcha/captcha-image", byte[].class);
+
+        ResponseEntity<byte[]> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/passport/captcha/captcha-image?login_site=E&module=login&rand=sjrand", byte[].class);
         HttpHeaders httpHeaders = responseEntity.getHeaders();
         log.debug("httpHeaders = {}", httpHeaders);
         byte[] bytes = responseEntity.getBody();
         log.debug(Arrays.toString(bytes));
-        String fileName = "full.jpg";
+        String fileName = PictureNames.FULL;
         // 如果没有images文件夹，那就创建一个
         File folder = new File(customConfig.getForder12306() + "/" + folderName);
         if (!folder.exists()) {
@@ -472,7 +439,7 @@ public class Test12306Application {
     /**
      * 从这个函数可以获取到登录所需要的jsessionid
      */
-    private void loginInit() {
+    private String getJSessionIdBylogin() {
         ResponseEntity<String> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/otn/login/init", String.class);
         HttpHeaders httpHeaders = responseEntity.getHeaders();
         log.debug("httpHeaders = {}", httpHeaders);
@@ -480,6 +447,7 @@ public class Test12306Application {
         log.debug("jsessionId = {}", jsessionId);
         String body = responseEntity.getBody();
         log.debug("body = {}", body);
+        return jsessionId;
     }
 
     /**
