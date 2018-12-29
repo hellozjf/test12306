@@ -23,6 +23,6 @@ public class PictureNames {
     public static String PIC13 = PIC_PREFIX + "13" + JPG_SUFFIX;
 
     // 网络上JPG图片的前缀
-    public static String NET_PRIFIX = "https://aliyun.hellozjf.com:7004/Pictures/12306/";
+//    public static String NET_PRIFIX = "https://aliyun.hellozjf.com:7004/Pictures/12306/";
 //    public static String NET_PRIFIX = "http://localhost/";
 }

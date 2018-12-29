@@ -74,16 +74,16 @@ public class Test12306Controller {
 
         QuestionInfoVO questionInfoVO = new QuestionInfoVO();
         questionInfoVO.setFolderName(folderName);
-        String prefix = PictureNames.NET_PRIFIX;
-        questionInfoVO.setQuestionUrl(prefix + folderName + "/question.jpg");
-        questionInfoVO.setPic00Url(prefix + folderName + "/pic00.jpg");
-        questionInfoVO.setPic01Url(prefix + folderName + "/pic01.jpg");
-        questionInfoVO.setPic02Url(prefix + folderName + "/pic02.jpg");
-        questionInfoVO.setPic03Url(prefix + folderName + "/pic03.jpg");
-        questionInfoVO.setPic10Url(prefix + folderName + "/pic10.jpg");
-        questionInfoVO.setPic11Url(prefix + folderName + "/pic11.jpg");
-        questionInfoVO.setPic12Url(prefix + folderName + "/pic12.jpg");
-        questionInfoVO.setPic13Url(prefix + folderName + "/pic13.jpg");
+        String prefix = customConfig.getNetPrefix();
+        questionInfoVO.setQuestionUrl(prefix + "/" + folderName + "/question.jpg");
+        questionInfoVO.setPic00Url(prefix + "/" + folderName + "/pic00.jpg");
+        questionInfoVO.setPic01Url(prefix + "/" + folderName + "/pic01.jpg");
+        questionInfoVO.setPic02Url(prefix + "/" + folderName + "/pic02.jpg");
+        questionInfoVO.setPic03Url(prefix + "/" + folderName + "/pic03.jpg");
+        questionInfoVO.setPic10Url(prefix + "/" + folderName + "/pic10.jpg");
+        questionInfoVO.setPic11Url(prefix + "/" + folderName + "/pic11.jpg");
+        questionInfoVO.setPic12Url(prefix + "/" + folderName + "/pic12.jpg");
+        questionInfoVO.setPic13Url(prefix + "/" + folderName + "/pic13.jpg");
         return questionInfoVO;
     }
 
@@ -169,16 +169,16 @@ public class Test12306Controller {
         // 构造需要返回的结构体
         QuestionInfoVO questionInfoVO = new QuestionInfoVO();
         questionInfoVO.setFolderName(folderName);
-        questionInfoVO.setQuestionUrl(PictureNames.NET_PRIFIX + folderName + "/" + PictureNames.QUESTION);
+        questionInfoVO.setQuestionUrl(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.QUESTION);
         questionInfoVO.setQuestion(JpgUtils.getJpegQuestion(baiduTokenVO, restTemplate, questionImage));
-        questionInfoVO.setPic00Url(PictureNames.NET_PRIFIX + folderName + "/" + PictureNames.PIC00);
-        questionInfoVO.setPic01Url(PictureNames.NET_PRIFIX + folderName + "/" + PictureNames.PIC01);
-        questionInfoVO.setPic02Url(PictureNames.NET_PRIFIX + folderName + "/" + PictureNames.PIC02);
-        questionInfoVO.setPic03Url(PictureNames.NET_PRIFIX + folderName + "/" + PictureNames.PIC03);
-        questionInfoVO.setPic10Url(PictureNames.NET_PRIFIX + folderName + "/" + PictureNames.PIC10);
-        questionInfoVO.setPic11Url(PictureNames.NET_PRIFIX + folderName + "/" + PictureNames.PIC11);
-        questionInfoVO.setPic12Url(PictureNames.NET_PRIFIX + folderName + "/" + PictureNames.PIC12);
-        questionInfoVO.setPic13Url(PictureNames.NET_PRIFIX + folderName + "/" + PictureNames.PIC13);
+        questionInfoVO.setPic00Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC00);
+        questionInfoVO.setPic01Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC01);
+        questionInfoVO.setPic02Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC02);
+        questionInfoVO.setPic03Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC03);
+        questionInfoVO.setPic10Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC10);
+        questionInfoVO.setPic11Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC11);
+        questionInfoVO.setPic12Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC12);
+        questionInfoVO.setPic13Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC13);
 
         // 把之前的信息写入到session中，以便后续登录
         httpSession.setAttribute("cookies", cookies);

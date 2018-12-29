@@ -5,10 +5,10 @@ import com.hellozjf.test.test12306.constant.PictureNames;
 import com.hellozjf.test.test12306.vo.BaiduTokenVO;
 import com.hellozjf.test.test12306.vo.OrcResultVO;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base64;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
-import sun.misc.BASE64Encoder;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -83,14 +83,15 @@ public class JpgUtils {
     public static String getJpegQuestion(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, BufferedImage bufferedImage) throws Exception {
 
         // 识别文字
-        String url = String.format("https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=%s",
+        String url = String.format("https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token=%s",
                 baiduTokenVO.getAccessToken());
         HttpEntity httpEntity = HttpEntityUtils.getHttpEntity(MediaType.APPLICATION_FORM_URLENCODED, ImmutableMap.of(
                 "image", changeJpegToBase64(bufferedImage)
         ));
         OrcResultVO orcResultVO = restTemplate.postForObject(url, httpEntity, OrcResultVO.class);
-        if (orcResultVO.getWordsResultNum() == 0) {
-            log.error("wordNum = {}", orcResultVO.getWordsResultNum());
+        if (orcResultVO.getWordsResultNum() == null || orcResultVO.getWordsResultNum() == 0) {
+            log.error("wordNum = {}, maybe api count limit reached", orcResultVO.getWordsResultNum());
+            return "";
         }
         return orcResultVO.getWordsResult().get(0).getWords();
     }
@@ -105,8 +106,7 @@ public class JpgUtils {
     public static String changeJpegToBase64(BufferedImage bufferedImage) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ImageIO.write(bufferedImage, "jpg", outputStream);
-        BASE64Encoder encoder = new BASE64Encoder();
-        String base64Img = encoder.encode(outputStream.toByteArray());
+        String base64Img = Base64.encodeBase64String(outputStream.toByteArray());
         return base64Img;
     }
 

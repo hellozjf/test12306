@@ -14,4 +14,5 @@ public class CustomConfig {
     private String clientId;
     private String clientSecret;
     private String forder12306;
+    private String netPrefix;
 }
