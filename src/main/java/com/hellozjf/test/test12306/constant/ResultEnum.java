@@ -12,7 +12,9 @@ public enum ResultEnum {
     CAN_NOT_GET_UNANSWERED_QUESTION(1, "无法找到未回答的问题"),
     QUESTION_IS_EMPTY(2, "问题为空"),
     ANSWER_IS_EMPTY(3, "答案为空"),
-    FOLDER_NAME_IS_EMPTY(4, "图片目录为空")
+    FOLDER_NAME_IS_EMPTY(4, "图片目录为空"),
+    ANSWER_ERROR(5, "回答问题错误"),
+    LOGIN_ERROR(6, "登录失败"),
     ;
 
     Integer code;

@@ -263,34 +263,12 @@ public class Test12306Application {
         String url = String.format("https://aip.baidubce.com/rest/2.0/image-classify/v2/advanced_general?access_token=%s",
                 baiduTokenVO.getAccessToken());
         HttpEntity httpEntity = HttpEntityUtils.getHttpEntity(MediaType.APPLICATION_FORM_URLENCODED, ImmutableMap.of(
-                "image", ImageUtils.changeJpegToBase64(subImage)
+                "image", JpgUtils.changeJpegToBase64(subImage)
         ));
         ImageClassifyVO imageClassifyVO = restTemplate.postForObject(url, httpEntity, ImageClassifyVO.class);
         List<String> keywordList = ImageClassifyVOUtils.getKeywordList(imageClassifyVO);
         log.debug("keywordList = {}", keywordList);
         return keywordList;
-    }
-
-    /**
-     * 获取验证码图片中的问题
-     *
-     * @param jpegFile 要解析的jpg文件
-     * @return
-     * @throws Exception
-     */
-    public String getJpegQuestion(File jpegFile) throws Exception {
-
-        // 获取问题图片
-        BufferedImage subImage = JpgUtils.getQuestionImage(jpegFile);
-
-        // 识别文字
-        String url = String.format("https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=%s",
-                baiduTokenVO.getAccessToken());
-        HttpEntity httpEntity = HttpEntityUtils.getHttpEntity(MediaType.APPLICATION_FORM_URLENCODED, ImmutableMap.of(
-                "image", ImageUtils.changeJpegToBase64(subImage)
-        ));
-        OrcResultVO orcResultVO = restTemplate.postForObject(url, httpEntity, OrcResultVO.class);
-        return orcResultVO.getWordsResult().get(0).getWords();
     }
 
     /**
@@ -315,7 +293,7 @@ public class Test12306Application {
         String url = String.format("https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=%s",
                 baiduTokenVO.getAccessToken());
         HttpEntity httpEntity = HttpEntityUtils.getHttpEntity(MediaType.APPLICATION_FORM_URLENCODED, ImmutableMap.of(
-                "image", ImageUtils.changeJpegToBase64(subImage1)
+                "image", JpgUtils.changeJpegToBase64(subImage1)
         ));
         OrcResultVO orcResultVO = restTemplate.postForObject(url, httpEntity, OrcResultVO.class);
         if (orcResultVO.getWordsResultNum() >= 1) {
@@ -324,7 +302,7 @@ public class Test12306Application {
         }
 
         httpEntity = HttpEntityUtils.getHttpEntity(MediaType.APPLICATION_FORM_URLENCODED, ImmutableMap.of(
-                "image", ImageUtils.changeJpegToBase64(subImage2)
+                "image", JpgUtils.changeJpegToBase64(subImage2)
         ));
         orcResultVO = restTemplate.postForObject(url, httpEntity, OrcResultVO.class);
         if (orcResultVO.getWordsResultNum() >= 1) {

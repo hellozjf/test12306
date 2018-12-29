@@ -20,10 +20,14 @@
 </head>
 <body>
 
-<p>Quesion:</p>
-<img id="idImgQuestion" src="" alt="">
-<label for="idInputQuestion">问题的内容是：</label>
-<input id="idInputQuestion" type="text">
+<div>
+    <label>Quesion:</label>
+    <img id="idImgQuestion" src="" alt="">
+</div>
+<div>
+    <label for="idInputQuestion">问题的内容是：</label>
+    <input id="idInputQuestion" type="text">
+</div>
 
 <p>Select:</p>
 
@@ -52,9 +56,9 @@
 </div>
 
 <!--<div>-->
-    <!--<label for="idInputFolderName">输入图片坐标</label>-->
-    <!--<input id="idInputFolderName" type="text">-->
-    <!--<button>跳转</button>-->
+<!--<label for="idInputFolderName">输入图片坐标</label>-->
+<!--<input id="idInputFolderName" type="text">-->
+<!--<button>跳转</button>-->
 <!--</div>-->
 
 <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
@@ -73,6 +77,7 @@
         }
 
         $('#idFolderName').val(data.data.folderName);
+        $('#idInputQuestion').val(data.data.question);
         $('#idImgQuestion').attr('src', data.data.questionUrl);
         $('#idImgPic00').attr('src', data.data.pic00Url);
         $('#idImgPic01').attr('src', data.data.pic01Url);
@@ -139,7 +144,11 @@
             },
             dataType: 'json',
             success: function (data) {
-                updateComponents(data);
+                if (data.code === 0) {
+                    updateComponents(data);
+                } else {
+                    initUnanswerQuestion();
+                }
             }
         });
     });
