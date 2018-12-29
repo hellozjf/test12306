@@ -33,7 +33,7 @@ public class JpgUtils {
         BufferedImage bufImage = ImageIO.read(jpegFile);
 
         // 获取右上角的文字信息
-        BufferedImage subImage = bufImage.getSubimage(119, 0, 47 * 2, 30);
+        BufferedImage subImage = bufImage.getSubimage(116, 0, 48 * 2, 30);
         ImageIO.write(subImage, "JPEG", new File(jpegFile.getParent(), PictureNames.QUESTION));
 
         return subImage;
