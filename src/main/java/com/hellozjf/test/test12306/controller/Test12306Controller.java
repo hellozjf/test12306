@@ -136,6 +136,10 @@ public class Test12306Controller {
         );
         responseHttpHeaders = response.getHeaders();
         setCookies = responseHttpHeaders.get("Set-Cookie");
+        if (setCookies == null) {
+            // 说明IP地址被封了，或者官网暂时无法访问，或者图片刷新太快了
+            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
+        }
         for (String string : setCookies) {
             String[] s = string.split(";")[0].split("=");
             cookies.put(s[0], s[1]);
@@ -283,11 +287,36 @@ public class Test12306Controller {
 
                 return getUncheckQuestion(httpSession);
             } else {
+                // 失败了，执行清理操作
+                cleanFolder(questionInfoVO.getFolderName());
+                // 返回回答错误
                 return ResultUtils.error(ResultEnum.LOGIN_ERROR);
             }
         } else {
-            // 执行失败操作
+            // 失败了，执行清理操作
+            cleanFolder(questionInfoVO.getFolderName());
+            // 返回回答错误
             return ResultUtils.error(ResultEnum.ANSWER_ERROR);
         }
+    }
+
+    @PostMapping("/deleteQuestion")
+    @ResponseBody
+    public ResultVO deleteQuestion(String folderName) {
+        cleanFolder(folderName);
+        return ResultUtils.success();
+    }
+
+    /**
+     * 清除错误问题的文件夹及其下面的图片文件
+     * @param folderName
+     */
+    private void cleanFolder(String folderName) {
+        File folder = new File(customConfig.getForder12306() + "/" + folderName);
+        File[] files = folder.listFiles();
+        for (File file : files) {
+            file.delete();
+        }
+        folder.delete();
     }
 }

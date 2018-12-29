@@ -15,6 +15,7 @@ public enum ResultEnum {
     FOLDER_NAME_IS_EMPTY(4, "图片目录为空"),
     ANSWER_ERROR(5, "回答问题错误"),
     LOGIN_ERROR(6, "登录失败"),
+    CAN_NOT_GET_IMAGE(7, "无法获取问题图片"),
     ;
 
     Integer code;

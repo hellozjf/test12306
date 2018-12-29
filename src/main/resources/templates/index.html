@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
     <title>Mark</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.bootcss.com/twitter-bootstrap/4.2.1/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .picAll {
             margin: 10px;
@@ -18,38 +20,39 @@
         }
     </style>
 </head>
-<body>
+<body onunload="unload();">
 
 <div>
-    <label>Quesion:</label>
+    <label>问题图片：</label>
     <img id="idImgQuestion" src="" alt="">
 </div>
 <div>
-    <label for="idInputQuestion">问题的内容是：</label>
+    <label for="idInputQuestion">问题内容：</label>
     <input id="idInputQuestion" type="text">
 </div>
 
-<p>Select:</p>
+<p>选择答案：</p>
 
 <input id="idFolderName" style="display: none;">
 <div id="idPicAll" class="picAll">
     <div>
-        <img class="pic" id="idImgPic00" src="" alt="">
-        <img class="pic" id="idImgPic01" src="" alt="">
-        <img class="pic" id="idImgPic02" src="" alt="">
-        <img class="pic" id="idImgPic03" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic00" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic01" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic02" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic03" src="" alt="">
     </div>
 
     <div>
-        <img class="pic" id="idImgPic10" src="" alt="">
-        <img class="pic" id="idImgPic11" src="" alt="">
-        <img class="pic" id="idImgPic12" src="" alt="">
-        <img class="pic" id="idImgPic13" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic10" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic11" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic12" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic13" src="" alt="">
     </div>
 </div>
 
 <div>
     <button id="idSaveContinue">保存继续</button>
+    <label id="idResult"></label>
     <!--<button id="idSave">保存</button>-->
     <!--<button id="previous">上一个</button>-->
     <!--<button id="next">下一个</button>-->
@@ -62,12 +65,16 @@
 <!--</div>-->
 
 <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/twitter-bootstrap/4.2.1/js/bootstrap.min.js"></script>
 <script>
 
     function updateComponents(data) {
 
         // 清除问题
         $('#idInputQuestion').val('');
+
+        // 清除回答状态
+        $('#idResult').text('');
 
         // 清除选择状态
         var allIdPic = $('#idPicAll img');
@@ -95,6 +102,11 @@
             type: 'GET',
             dataType: 'json',
             success: function (data) {
+                if (data.code != 0) {
+                    // 说明有错误
+                    alert(data.msg);
+                    return;
+                }
                 updateComponents(data);
             }
         });
@@ -103,6 +115,19 @@
     $(document).ready(function () {
         initUnanswerQuestion();
     });
+
+    function unload() {
+        $.ajax({
+            url: '/deleteQuestion',
+            type: 'POST',
+            data: {
+                folderName: $('#idFolderName').val(),
+            },
+            success: function () {
+                console.debug("window close");
+            }
+        });
+    }
 
     $('#idPicAll img').click(function () {
         var item = $(this);
@@ -145,9 +170,11 @@
             dataType: 'json',
             success: function (data) {
                 if (data.code === 0) {
-                    updateComponents(data);
+                    $('#idResult').text(data.msg);
+                    setTimeout(updateComponents(data), 2000);
                 } else {
-                    initUnanswerQuestion();
+                    $('#idResult').text(data.msg);
+                    setTimeout(initUnanswerQuestion(), 2000);
                 }
             }
         });
