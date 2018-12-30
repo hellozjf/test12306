@@ -98,6 +98,10 @@ public class Test12306Controller {
         ResponseEntity<String> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/otn/login/init", String.class);
         HttpHeaders responseHttpHeaders = responseEntity.getHeaders();
         List<String> setCookies = responseHttpHeaders.get(HttpHeaders.SET_COOKIE);
+        if (setCookies == null) {
+            // 说明IP地址被封了，或者官网暂时无法访问，或者图片刷新太快了
+            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
+        }
         for (String string : setCookies) {
             String[] s = string.split(";")[0].split("=");
             cookies.put(s[0], s[1]);
@@ -119,6 +123,10 @@ public class Test12306Controller {
         );
         responseHttpHeaders = responseEntity.getHeaders();
         setCookies = responseHttpHeaders.get("Set-Cookie");
+        if (setCookies == null) {
+            // 说明IP地址被封了，或者官网暂时无法访问，或者图片刷新太快了
+            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
+        }
         for (String string : setCookies) {
             String[] s = string.split(";")[0].split("=");
             cookies.put(s[0], s[1]);
@@ -158,11 +166,17 @@ public class Test12306Controller {
             out.write(bytes);
         } catch (Exception e) {
             log.error("e = {}", e);
-            throw e;
+            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
         }
 
         // 获取问题图片
-        BufferedImage questionImage = JpgUtils.getQuestionImage(jpegFile);
+        BufferedImage questionImage = null;
+        try {
+            questionImage = JpgUtils.getQuestionImage(jpegFile);
+        } catch (Exception e) {
+            log.error("getQuestionImage Failed, e = {}", e);
+            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
+        }
 
         // 获取子图
         for (int x = 0; x < 4; x++) {

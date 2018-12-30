@@ -24,7 +24,7 @@ public interface VerificationCodeRepository extends JpaRepository<VerificationCo
      * 找到一个人工未确认的处理结果
      * @return
      */
-    VerificationCode findTopByDisposeResultEqualsOrderByFolderNameAsc(String disposeResult);
+    List<VerificationCode> findTop10ByDisposeResultEqualsOrderByFolderNameAsc(String disposeResult);
 
     /**
      * 找到时间最早的未标注的问题
