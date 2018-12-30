@@ -41,9 +41,10 @@ public class VerificationCode extends BaseEntity {
     private String pic13Desc;
 
     /**
-     * 人工处理的结果
+     * 处理的结果
      * 0：未处理
-     * 1：已处理
+     * 1：人工已处理
+     * 2：机器已采纳
      */
     private String disposeResult;
 

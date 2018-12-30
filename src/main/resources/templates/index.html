@@ -18,9 +18,29 @@
             padding: 0px;
             border: 5px solid red;
         }
+
+        .loading {
+            width: 160px;
+            height: 56px;
+            position: absolute;
+            /*top: 50%;*/
+            /*left: 25%;*/
+            /*margin: 0 auto;*/
+            line-height: 56px;
+            color: #fff;
+            padding-left: 60px;
+            font-size: 15px;
+            background: #000 url(image/loading.gif) no-repeat 10px 50%;
+            opacity: 0.7;
+            z-index: 9999;
+            -moz-border-radius: 20px;
+            -webkit-border-radius: 20px;
+            border-radius: 20px;
+            filter: progid:DXImageTransform.Microsoft.Alpha(opacity=70);
+        }
     </style>
 </head>
-<body onunload="unload();">
+<body onbeforeunload="unload();">
 
 <div>
     <label>问题图片：</label>
@@ -36,17 +56,17 @@
 <input id="idFolderName" style="display: none;">
 <div id="idPicAll" class="picAll">
     <div>
-        <img class="pic col-xs-3" id="idImgPic00" src="" alt="">
-        <img class="pic col-xs-3" id="idImgPic01" src="" alt="">
-        <img class="pic col-xs-3" id="idImgPic02" src="" alt="">
-        <img class="pic col-xs-3" id="idImgPic03" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic00" src="" alt="" onload="picLoad(0x01 << 0)">
+        <img class="pic col-xs-3" id="idImgPic01" src="" alt="" onload="picLoad(0x01 << 1)">
+        <img class="pic col-xs-3" id="idImgPic02" src="" alt="" onload="picLoad(0x01 << 2)">
+        <img class="pic col-xs-3" id="idImgPic03" src="" alt="" onload="picLoad(0x01 << 3)">
     </div>
 
     <div>
-        <img class="pic col-xs-3" id="idImgPic10" src="" alt="">
-        <img class="pic col-xs-3" id="idImgPic11" src="" alt="">
-        <img class="pic col-xs-3" id="idImgPic12" src="" alt="">
-        <img class="pic col-xs-3" id="idImgPic13" src="" alt="">
+        <img class="pic col-xs-3" id="idImgPic10" src="" alt="" onload="picLoad(0x01 << 4)">
+        <img class="pic col-xs-3" id="idImgPic11" src="" alt="" onload="picLoad(0x01 << 5)">
+        <img class="pic col-xs-3" id="idImgPic12" src="" alt="" onload="picLoad(0x01 << 6)">
+        <img class="pic col-xs-3" id="idImgPic13" src="" alt="" onload="picLoad(0x01 << 7)">
     </div>
 </div>
 
@@ -64,17 +84,50 @@
 <!--<button>跳转</button>-->
 <!--</div>-->
 
+<div id="myModal" class="modal" data-keyboard="false"
+     tabindex="-1" role="dialog" data-backdrop="static"
+     aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-body">
+            <div id="loading" class="loading">加载中。。。</div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://cdn.bootcss.com/twitter-bootstrap/4.2.1/js/bootstrap.min.js"></script>
 <script>
+
+    $('#myModal').on('shown.bs.modal', function () {
+        var $this = $(this);
+        var dialog = $this.find('.modal-dialog');
+
+        //此种方式，在使用动画第一次显示时有问题
+        //解决方案，去掉动画fade样式
+        var top = ($(window).height() - dialog.height()) / 2;
+        var left = ($(window).width() - dialog.width()) / 2;
+        console.debug('window.height=' + $(window).height());
+        console.debug('window.height=' + $(window).width());
+        console.debug('dialog.height=' + dialog.height());
+        console.debug('dialog.width=' + dialog.width());
+        console.debug('top=' + top);
+        console.debug('left=' + left);
+        dialog.css({
+            marginTop: top,
+            marginLeft: left
+        });
+
+        console.debug("loading.width=" + $('#loading').width());
+        left = (dialog.width() - $('#loading').width() - 60) / 2;
+        $('#loading').css({
+            marginLeft: left
+        });
+    });
 
     function updateComponents(data) {
 
         // 清除问题
         $('#idInputQuestion').val('');
-
-        // 清除回答状态
-        $('#idResult').text('');
 
         // 清除选择状态
         var allIdPic = $('#idPicAll img');
@@ -112,9 +165,25 @@
         });
     }
 
+    var loadImagePos = 0;
+
+    function picLoad(pos) {
+        loadImagePos |= pos;
+        console.debug('pos = ' + pos + ', loadImagePos = ' + loadImagePos);
+        if (loadImagePos == 0xff) {
+            // 关闭模态框
+            console.debug('myModal hide');
+            $('#myModal').modal('hide');
+            // 清除回答状态
+            $('#idResult').text('');
+        }
+    }
+
     $(document).ready(function () {
+        $('#myModal').modal('show');
         initUnanswerQuestion();
-    });
+    })
+    ;
 
     function unload() {
         $.ajax({
@@ -159,6 +228,10 @@
             return;
         }
 
+        $('#myModal').modal('show');
+        $('#idResult').text('等待回答结果');
+        loadImagePos = 0x00;
+
         $.ajax({
             url: '/answerQuestion',
             type: 'POST',
@@ -170,11 +243,11 @@
             dataType: 'json',
             success: function (data) {
                 if (data.code === 0) {
-                    $('#idResult').text(data.msg);
-                    setTimeout(updateComponents(data), 2000);
+                    $('#idResult').text('回答正确');
+                    updateComponents(data);
                 } else {
                     $('#idResult').text(data.msg);
-                    setTimeout(initUnanswerQuestion(), 2000);
+                    initUnanswerQuestion();
                 }
             }
         });

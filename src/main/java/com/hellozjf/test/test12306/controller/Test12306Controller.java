@@ -3,6 +3,7 @@ package com.hellozjf.test.test12306.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hellozjf.test.test12306.config.CustomConfig;
+import com.hellozjf.test.test12306.constant.DisposeResultEnums;
 import com.hellozjf.test.test12306.constant.PictureNames;
 import com.hellozjf.test.test12306.constant.ResultEnum;
 import com.hellozjf.test.test12306.dataobject.VerificationCode;
@@ -283,6 +284,7 @@ public class Test12306Controller {
                         verificationCode.setPic13Desc(questionInfoVO.getQuestion());
                     }
                 }
+                verificationCode.setDisposeResult(DisposeResultEnums.UNDISPOSE.getCode());
                 verificationCodeRepository.save(verificationCode);
 
                 return getUncheckQuestion(httpSession);
