@@ -16,6 +16,7 @@ public enum ResultEnum {
     ANSWER_ERROR(5, "回答问题错误"),
     LOGIN_ERROR(6, "登录失败"),
     CAN_NOT_GET_IMAGE(7, "无法获取问题图片"),
+    UNKNOWN_ERROR(8, "未知错误"),
     ;
 
     Integer code;

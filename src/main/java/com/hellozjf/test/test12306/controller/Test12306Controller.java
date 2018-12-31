@@ -90,229 +90,242 @@ public class Test12306Controller {
 
     @GetMapping("/getUncheckQuestion")
     @ResponseBody
-    public ResultVO getUncheckQuestion(HttpSession httpSession) throws Exception {
+    public ResultVO getUncheckQuestion(HttpSession httpSession) {
 
-        Map<String, Object> cookies = new HashMap<>();
-
-        // 通过login获取jsessionid，然后通过这个jsessionid去获取图片
-        ResponseEntity<String> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/otn/login/init", String.class);
-        HttpHeaders responseHttpHeaders = responseEntity.getHeaders();
-        List<String> setCookies = responseHttpHeaders.get(HttpHeaders.SET_COOKIE);
-        if (setCookies == null) {
-            // 说明IP地址被封了，或者官网暂时无法访问，或者图片刷新太快了
-            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
-        }
-        for (String string : setCookies) {
-            String[] s = string.split(";")[0].split("=");
-            cookies.put(s[0], s[1]);
-        }
-
-        // 访问https://kyfw.12306.cn/passport/web/auth/uamtk
-        HttpHeaders requestHttpHeaders = new HttpHeaders();
-        for (Map.Entry entry : cookies.entrySet()) {
-            requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
-        }
-        requestHttpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add("appid", "otn");
-        responseEntity = restTemplate.exchange(
-                "https://kyfw.12306.cn/passport/web/auth/uamtk",
-                HttpMethod.POST,
-                new HttpEntity<>(map, requestHttpHeaders),
-                String.class
-        );
-        responseHttpHeaders = responseEntity.getHeaders();
-        setCookies = responseHttpHeaders.get("Set-Cookie");
-        if (setCookies == null) {
-            // 说明IP地址被封了，或者官网暂时无法访问，或者图片刷新太快了
-            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
-        }
-        for (String string : setCookies) {
-            String[] s = string.split(";")[0].split("=");
-            cookies.put(s[0], s[1]);
-        }
-
-        // 获取图片
-        requestHttpHeaders = new HttpHeaders();
-        for (Map.Entry entry : cookies.entrySet()) {
-            requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
-        }
-        ResponseEntity<byte[]> response = restTemplate.exchange(
-                "https://kyfw.12306.cn/passport/captcha/captcha-image?login_site=E&module=login&rand=sjrand&0.23335437505509327",
-                HttpMethod.GET,
-                new HttpEntity<>(requestHttpHeaders),
-                byte[].class
-        );
-        responseHttpHeaders = response.getHeaders();
-        setCookies = responseHttpHeaders.get("Set-Cookie");
-        if (setCookies == null) {
-            // 说明IP地址被封了，或者官网暂时无法访问，或者图片刷新太快了
-            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
-        }
-        for (String string : setCookies) {
-            String[] s = string.split(";")[0].split("=");
-            cookies.put(s[0], s[1]);
-        }
-
-        // 创建要保存图片的文件夹
-        String folderName = DateUtils.getFolderName(new Date());
-        File folder = new File(customConfig.getForder12306() + "/" + folderName);
-        folder.mkdir();
-
-        // 将全图保存到文件夹中
-        File jpegFile = new File(folder, PictureNames.FULL);
-        byte[] bytes = response.getBody();
-        try (FileOutputStream out = new FileOutputStream(jpegFile)) {
-            out.write(bytes);
-        } catch (Exception e) {
-            log.error("e = {}", e);
-            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
-        }
-
-        // 获取问题图片
-        BufferedImage questionImage = null;
         try {
-            questionImage = JpgUtils.getQuestionImage(jpegFile);
-        } catch (Exception e) {
-            log.error("getQuestionImage Failed, e = {}", e);
-            return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
-        }
+            Map<String, Object> cookies = new HashMap<>();
 
-        // 获取子图
-        for (int x = 0; x < 4; x++) {
-            for (int y = 0; y < 2; y++) {
-                JpgUtils.writeSubImage(jpegFile, x, y);
+            // 通过login获取jsessionid，然后通过这个jsessionid去获取图片
+            ResponseEntity<String> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/otn/login/init", String.class);
+            HttpHeaders responseHttpHeaders = responseEntity.getHeaders();
+            List<String> setCookies = responseHttpHeaders.get(HttpHeaders.SET_COOKIE);
+            if (setCookies == null) {
+                // 说明IP地址被封了，或者官网暂时无法访问，或者图片刷新太快了
+                return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
             }
-        }
+            for (String string : setCookies) {
+                String[] s = string.split(";")[0].split("=");
+                cookies.put(s[0], s[1]);
+            }
 
-        // 构造需要返回的结构体
-        QuestionInfoVO questionInfoVO = new QuestionInfoVO();
-        questionInfoVO.setFolderName(folderName);
-        questionInfoVO.setQuestionUrl(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.QUESTION);
-        questionInfoVO.setQuestion(JpgUtils.getJpegQuestion(baiduTokenVO, restTemplate, questionImage));
-        questionInfoVO.setPic00Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC00);
-        questionInfoVO.setPic01Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC01);
-        questionInfoVO.setPic02Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC02);
-        questionInfoVO.setPic03Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC03);
-        questionInfoVO.setPic10Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC10);
-        questionInfoVO.setPic11Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC11);
-        questionInfoVO.setPic12Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC12);
-        questionInfoVO.setPic13Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC13);
-
-        // 把之前的信息写入到session中，以便后续登录
-        httpSession.setAttribute("cookies", cookies);
-
-        return ResultUtils.success(questionInfoVO);
-    }
-
-    @PostMapping("/answerQuestion")
-    @ResponseBody
-    public ResultVO answerQuestion(QuestionInfoVO questionInfoVO, HttpSession httpSession) throws Exception {
-
-        // 出错检查
-        if (StringUtils.isEmpty(questionInfoVO.getQuestion())) {
-            return ResultUtils.error(ResultEnum.QUESTION_IS_EMPTY);
-        } else if (StringUtils.isEmpty(questionInfoVO.getChoose())) {
-            return ResultUtils.error(ResultEnum.ANSWER_IS_EMPTY);
-        } else if (StringUtils.isEmpty(questionInfoVO.getFolderName())) {
-            return ResultUtils.error(ResultEnum.FOLDER_NAME_IS_EMPTY);
-        }
-
-        // 获取选中的图片，然后尝试向12306发送登录请求
-        List<Integer> answerList = new ArrayList<>();
-        String[] chooses = questionInfoVO.getChoose().split(",");
-        for (String choose : chooses) {
-            int chos = Integer.valueOf(choose);
-            int x = (chos - 1) % 4;
-            int y = (chos - 1) / 4;
-            Point point = JpgUtils.getSubImageChoosePoint(x, y);
-            answerList.add(point.x);
-            answerList.add(point.y);
-        }
-
-        // 从session中获取cookie
-        Map<String, Object> cookies = (Map<String, Object>) httpSession.getAttribute("cookies");
-
-        // 带上cookie发送图片选择信息
-        HttpHeaders requestHttpHeaders = new HttpHeaders();
-        for (Map.Entry entry : cookies.entrySet()) {
-            requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
-        }
-        requestHttpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add("answer", StringUtils.join(answerList, ","));
-        map.add("login_site", "E");
-        map.add("rand", "sjrand");
-        ResponseEntity<String> responseEntity = restTemplate.exchange(
-                "https://kyfw.12306.cn/passport/captcha/captcha-check",
-                HttpMethod.POST,
-                new HttpEntity<>(map, requestHttpHeaders),
-                String.class
-        );
-        log.debug("response={}", responseEntity.getBody());
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(responseEntity.getBody());
-        if (jsonNode.get("result_code").textValue().equals("4")) {
-
-            // 执行登录操作
-            requestHttpHeaders = new HttpHeaders();
+            // 访问https://kyfw.12306.cn/passport/web/auth/uamtk
+            HttpHeaders requestHttpHeaders = new HttpHeaders();
             for (Map.Entry entry : cookies.entrySet()) {
                 requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
             }
             requestHttpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            map = new LinkedMultiValueMap<>();
-            map.add("username", "nbda1121440");
-            map.add("password", "Zjf@1234");
+            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
             map.add("appid", "otn");
             responseEntity = restTemplate.exchange(
-                    "https://kyfw.12306.cn/passport/web/login",
+                    "https://kyfw.12306.cn/passport/web/auth/uamtk",
+                    HttpMethod.POST,
+                    new HttpEntity<>(map, requestHttpHeaders),
+                    String.class
+            );
+            responseHttpHeaders = responseEntity.getHeaders();
+            setCookies = responseHttpHeaders.get("Set-Cookie");
+            if (setCookies == null) {
+                // 说明IP地址被封了，或者官网暂时无法访问，或者图片刷新太快了
+                return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
+            }
+            for (String string : setCookies) {
+                String[] s = string.split(";")[0].split("=");
+                cookies.put(s[0], s[1]);
+            }
+
+            // 获取图片
+            requestHttpHeaders = new HttpHeaders();
+            for (Map.Entry entry : cookies.entrySet()) {
+                requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
+            }
+            ResponseEntity<byte[]> response = restTemplate.exchange(
+                    "https://kyfw.12306.cn/passport/captcha/captcha-image?login_site=E&module=login&rand=sjrand&0.23335437505509327",
+                    HttpMethod.GET,
+                    new HttpEntity<>(requestHttpHeaders),
+                    byte[].class
+            );
+            responseHttpHeaders = response.getHeaders();
+            setCookies = responseHttpHeaders.get("Set-Cookie");
+            if (setCookies == null) {
+                // 说明IP地址被封了，或者官网暂时无法访问，或者图片刷新太快了
+                return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
+            }
+            for (String string : setCookies) {
+                String[] s = string.split(";")[0].split("=");
+                cookies.put(s[0], s[1]);
+            }
+
+            // 创建要保存图片的文件夹
+            String folderName = DateUtils.getFolderName(new Date());
+            File folder = new File(customConfig.getForder12306() + "/" + folderName);
+            folder.mkdir();
+
+            // 将全图保存到文件夹中
+            File jpegFile = new File(folder, PictureNames.FULL);
+            byte[] bytes = response.getBody();
+            try (FileOutputStream out = new FileOutputStream(jpegFile)) {
+                out.write(bytes);
+            } catch (Exception e) {
+                log.error("e = {}", e);
+                return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
+            }
+
+            // 获取问题图片
+            BufferedImage questionImage = null;
+            try {
+                questionImage = JpgUtils.getQuestionImage(jpegFile);
+            } catch (Exception e) {
+                log.error("getQuestionImage Failed, e = {}", e);
+                return ResultUtils.error(ResultEnum.CAN_NOT_GET_IMAGE);
+            }
+
+            // 获取子图
+            for (int x = 0; x < 4; x++) {
+                for (int y = 0; y < 2; y++) {
+                    JpgUtils.writeSubImage(jpegFile, x, y);
+                }
+            }
+
+            // 构造需要返回的结构体
+            QuestionInfoVO questionInfoVO = new QuestionInfoVO();
+            questionInfoVO.setFolderName(folderName);
+            questionInfoVO.setQuestionUrl(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.QUESTION);
+            questionInfoVO.setQuestion(JpgUtils.getJpegQuestion(baiduTokenVO, restTemplate, questionImage));
+            questionInfoVO.setPic00Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC00);
+            questionInfoVO.setPic01Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC01);
+            questionInfoVO.setPic02Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC02);
+            questionInfoVO.setPic03Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC03);
+            questionInfoVO.setPic10Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC10);
+            questionInfoVO.setPic11Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC11);
+            questionInfoVO.setPic12Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC12);
+            questionInfoVO.setPic13Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC13);
+
+            // 把之前的信息写入到session中，以便后续登录
+            httpSession.setAttribute("cookies", cookies);
+
+            return ResultUtils.success(questionInfoVO);
+        } catch (Exception e) {
+            // 返回回答错误
+            return ResultUtils.error(ResultEnum.UNKNOWN_ERROR);
+        }
+    }
+
+    @PostMapping("/answerQuestion")
+    @ResponseBody
+    public ResultVO answerQuestion(QuestionInfoVO questionInfoVO, HttpSession httpSession) {
+
+        try {
+            // 出错检查
+            if (StringUtils.isEmpty(questionInfoVO.getQuestion())) {
+                // 问题可以为空，方便输入
+//                return ResultUtils.error(ResultEnum.QUESTION_IS_EMPTY);
+            } else if (StringUtils.isEmpty(questionInfoVO.getChoose())) {
+                return ResultUtils.error(ResultEnum.ANSWER_IS_EMPTY);
+            } else if (StringUtils.isEmpty(questionInfoVO.getFolderName())) {
+                return ResultUtils.error(ResultEnum.FOLDER_NAME_IS_EMPTY);
+            }
+
+            // 获取选中的图片，然后尝试向12306发送登录请求
+            List<Integer> answerList = new ArrayList<>();
+            String[] chooses = questionInfoVO.getChoose().split(",");
+            for (String choose : chooses) {
+                int chos = Integer.valueOf(choose);
+                int x = (chos - 1) % 4;
+                int y = (chos - 1) / 4;
+                Point point = JpgUtils.getSubImageChoosePoint(x, y);
+                answerList.add(point.x);
+                answerList.add(point.y);
+            }
+
+            // 从session中获取cookie
+            Map<String, Object> cookies = (Map<String, Object>) httpSession.getAttribute("cookies");
+
+            // 带上cookie发送图片选择信息
+            HttpHeaders requestHttpHeaders = new HttpHeaders();
+            for (Map.Entry entry : cookies.entrySet()) {
+                requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
+            }
+            requestHttpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+            map.add("answer", StringUtils.join(answerList, ","));
+            map.add("login_site", "E");
+            map.add("rand", "sjrand");
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    "https://kyfw.12306.cn/passport/captcha/captcha-check",
                     HttpMethod.POST,
                     new HttpEntity<>(map, requestHttpHeaders),
                     String.class
             );
             log.debug("response={}", responseEntity.getBody());
-            jsonNode = objectMapper.readTree(responseEntity.getBody());
-            if (jsonNode.get("result_code").intValue() == 0) {
-                // 将结果写入数据库中
-                VerificationCode verificationCode = new VerificationCode();
-                verificationCode.setFolderName(questionInfoVO.getFolderName());
-                verificationCode.setQuestion(questionInfoVO.getQuestion());
-                verificationCode.setChoose(questionInfoVO.getChoose());
-                for (String choose : chooses) {
-                    if (choose.equals("1")) {
-                        verificationCode.setPic00Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("2")) {
-                        verificationCode.setPic01Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("3")) {
-                        verificationCode.setPic02Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("4")) {
-                        verificationCode.setPic03Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("5")) {
-                        verificationCode.setPic10Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("6")) {
-                        verificationCode.setPic11Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("7")) {
-                        verificationCode.setPic12Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("8")) {
-                        verificationCode.setPic13Desc(questionInfoVO.getQuestion());
-                    }
-                }
-                verificationCode.setDisposeResult(DisposeResultEnums.UNDISPOSE.getCode());
-                verificationCodeRepository.save(verificationCode);
 
-                return getUncheckQuestion(httpSession);
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(responseEntity.getBody());
+            if (jsonNode.get("result_code").textValue().equals("4")) {
+
+                // 执行登录操作
+                requestHttpHeaders = new HttpHeaders();
+                for (Map.Entry entry : cookies.entrySet()) {
+                    requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
+                }
+                requestHttpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+                map = new LinkedMultiValueMap<>();
+                map.add("username", "nbda1121440");
+                map.add("password", "Zjf@1234");
+                map.add("appid", "otn");
+                responseEntity = restTemplate.exchange(
+                        "https://kyfw.12306.cn/passport/web/login",
+                        HttpMethod.POST,
+                        new HttpEntity<>(map, requestHttpHeaders),
+                        String.class
+                );
+                log.debug("response={}", responseEntity.getBody());
+                jsonNode = objectMapper.readTree(responseEntity.getBody());
+                if (jsonNode.get("result_code").intValue() == 0) {
+                    // 将结果写入数据库中
+                    VerificationCode verificationCode = new VerificationCode();
+                    verificationCode.setFolderName(questionInfoVO.getFolderName());
+                    verificationCode.setQuestion(questionInfoVO.getQuestion());
+                    verificationCode.setChoose(questionInfoVO.getChoose());
+                    for (String choose : chooses) {
+                        if (choose.equals("1")) {
+                            verificationCode.setPic00Desc(questionInfoVO.getQuestion());
+                        } else if (choose.equals("2")) {
+                            verificationCode.setPic01Desc(questionInfoVO.getQuestion());
+                        } else if (choose.equals("3")) {
+                            verificationCode.setPic02Desc(questionInfoVO.getQuestion());
+                        } else if (choose.equals("4")) {
+                            verificationCode.setPic03Desc(questionInfoVO.getQuestion());
+                        } else if (choose.equals("5")) {
+                            verificationCode.setPic10Desc(questionInfoVO.getQuestion());
+                        } else if (choose.equals("6")) {
+                            verificationCode.setPic11Desc(questionInfoVO.getQuestion());
+                        } else if (choose.equals("7")) {
+                            verificationCode.setPic12Desc(questionInfoVO.getQuestion());
+                        } else if (choose.equals("8")) {
+                            verificationCode.setPic13Desc(questionInfoVO.getQuestion());
+                        }
+                    }
+                    verificationCode.setDisposeResult(DisposeResultEnums.UNDISPOSE.getCode());
+                    verificationCodeRepository.save(verificationCode);
+
+                    return getUncheckQuestion(httpSession);
+                } else {
+                    // 失败了，执行清理操作
+                    cleanFolder(questionInfoVO.getFolderName());
+                    // 返回回答错误
+                    return ResultUtils.error(ResultEnum.LOGIN_ERROR);
+                }
             } else {
                 // 失败了，执行清理操作
                 cleanFolder(questionInfoVO.getFolderName());
                 // 返回回答错误
-                return ResultUtils.error(ResultEnum.LOGIN_ERROR);
+                return ResultUtils.error(ResultEnum.ANSWER_ERROR);
             }
-        } else {
+        } catch (Exception e) {
             // 失败了，执行清理操作
             cleanFolder(questionInfoVO.getFolderName());
             // 返回回答错误
-            return ResultUtils.error(ResultEnum.ANSWER_ERROR);
+            return ResultUtils.error(ResultEnum.UNKNOWN_ERROR);
         }
     }
 

@@ -46,10 +46,10 @@
     <label>问题图片：</label>
     <img id="idImgQuestion" src="" alt="">
 </div>
-<div>
-    <label for="idInputQuestion">问题内容：</label>
-    <input id="idInputQuestion" type="text">
-</div>
+<!--<div>-->
+    <!--<label for="idInputQuestion">问题内容：</label>-->
+    <!--<input id="idInputQuestion" type="text">-->
+<!--</div>-->
 
 <p>选择答案：</p>
 
@@ -125,28 +125,29 @@
     });
 
     function updateComponents(data) {
+        setTimeout(function () {
+            // 清除问题
+            $('#idInputQuestion').val('');
 
-        // 清除问题
-        $('#idInputQuestion').val('');
+            // 清除选择状态
+            var allIdPic = $('#idPicAll img');
+            for (var i = 0; i < allIdPic.length; i++) {
+                var idPic = $(allIdPic[i]);
+                idPic.removeClass('check')
+            }
 
-        // 清除选择状态
-        var allIdPic = $('#idPicAll img');
-        for (var i = 0; i < allIdPic.length; i++) {
-            var idPic = $(allIdPic[i]);
-            idPic.removeClass('check')
-        }
-
-        $('#idFolderName').val(data.data.folderName);
-        $('#idInputQuestion').val(data.data.question);
-        $('#idImgQuestion').attr('src', data.data.questionUrl);
-        $('#idImgPic00').attr('src', data.data.pic00Url);
-        $('#idImgPic01').attr('src', data.data.pic01Url);
-        $('#idImgPic02').attr('src', data.data.pic02Url);
-        $('#idImgPic03').attr('src', data.data.pic03Url);
-        $('#idImgPic10').attr('src', data.data.pic10Url);
-        $('#idImgPic11').attr('src', data.data.pic11Url);
-        $('#idImgPic12').attr('src', data.data.pic12Url);
-        $('#idImgPic13').attr('src', data.data.pic13Url);
+            $('#idFolderName').val(data.data.folderName);
+            $('#idInputQuestion').val(data.data.question);
+            $('#idImgQuestion').attr('src', data.data.questionUrl);
+            $('#idImgPic00').attr('src', data.data.pic00Url);
+            $('#idImgPic01').attr('src', data.data.pic01Url);
+            $('#idImgPic02').attr('src', data.data.pic02Url);
+            $('#idImgPic03').attr('src', data.data.pic03Url);
+            $('#idImgPic10').attr('src', data.data.pic10Url);
+            $('#idImgPic11').attr('src', data.data.pic11Url);
+            $('#idImgPic12').attr('src', data.data.pic12Url);
+            $('#idImgPic13').attr('src', data.data.pic13Url);
+        }, 1000);
     }
 
     function initUnanswerQuestion() {
@@ -209,10 +210,10 @@
     $('#idSaveContinue').click(function () {
 
         // 判断问题有没有填写
-        if ($('#idInputQuestion').val() === '') {
-            alert('请填写问题');
-            return;
-        }
+        // if ($('#idInputQuestion').val() === '') {
+        //     alert('请填写问题');
+        //     return;
+        // }
 
         // 判断图片有没有选择
         var allIdPic = $('#idPicAll img');
