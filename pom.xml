@@ -16,6 +16,7 @@
 
     <properties>
         <java.version>1.8</java.version>
+        <docker.image.prefix>hellozjf</docker.image.prefix>
     </properties>
 
     <dependencies>
@@ -108,6 +109,23 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!-- 参考 https://blog.csdn.net/qq_36348557/article/details/79651233 -->
+            <!-- 参考 https://github.com/spotify/dockerfile-maven -->
+            <!-- 参考 https://github.com/spotify/dockerfile-maven/blob/master/docs/authentication.md -->
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>1.4.8</version>
+                <configuration>
+                    <username>hellozjf</username>
+                    <password>Zjf@1234</password>
+                    <repository>${docker.image.prefix}/${project.artifactId}</repository>
+                    <tag>${project.version}</tag>
+                    <buildArgs>
+                        <JAR_FILE>${project.build.finalName}.jar</JAR_FILE>
+                    </buildArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>

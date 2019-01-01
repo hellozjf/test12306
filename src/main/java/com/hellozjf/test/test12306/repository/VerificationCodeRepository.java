@@ -13,6 +13,13 @@ import java.util.List;
  */
 public interface VerificationCodeRepository extends JpaRepository<VerificationCode, String> {
 
+    @Query(
+            " select question from VerificationCode where disposeResult=?1 group by question "
+    )
+    List<String> findByDisposeResultEqualsGroupByQuestion(String disposeResult);
+
+    List<VerificationCode> findByDisposeResultEqualsAndQuestionEquals(String disposeResult, String question);
+
     /**
      * 通过folderName找到对应的VerificationCode
      * @param folderName
