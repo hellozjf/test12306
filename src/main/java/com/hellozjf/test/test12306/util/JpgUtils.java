@@ -1,11 +1,16 @@
 package com.hellozjf.test.test12306.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.hellozjf.test.test12306.config.CustomConfig;
 import com.hellozjf.test.test12306.constant.PictureNames;
 import com.hellozjf.test.test12306.vo.BaiduTokenVO;
 import com.hellozjf.test.test12306.vo.OrcResultVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
@@ -66,36 +71,86 @@ public class JpgUtils {
      * @return
      * @throws Exception
      */
-    public static String getJpegQuestion(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, File jpegFile) throws Exception {
+    public static String getJpegQuestion(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, File jpegFile,
+                                         ObjectMapper objectMapper, CustomConfig customConfig) throws Exception {
 
         // 获取问题图片
         BufferedImage subImage = JpgUtils.getQuestionImage(jpegFile);
-        return getJpegQuestion(baiduTokenVO, restTemplate, subImage);
+        return getJpegQuestion(baiduTokenVO, restTemplate, subImage, objectMapper, customConfig);
     }
 
     /**
-     * 获取验证码图片中的问题
+     * 先用精确文字解析，再使用一般文字解析
+     * @param baiduTokenVO
+     * @param restTemplate
+     * @param bufferedImage
+     * @param objectMapper
+     * @param customConfig
+     * @return
+     * @throws Exception
+     */
+    public static String getJpegQuestion(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, BufferedImage bufferedImage,
+                                         ObjectMapper objectMapper, CustomConfig customConfig) throws Exception {
+        // 如果能使用精确文字解析，那就使用精确文字解析
+        String accurateString = getJpegQuestion(baiduTokenVO, restTemplate, bufferedImage,
+                objectMapper, customConfig, "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic");
+        if (!StringUtils.isEmpty(accurateString)) {
+            return accurateString;
+        }
+        // 否则使用一般文字解析
+        String generalString = getJpegQuestion(baiduTokenVO, restTemplate, bufferedImage,
+                objectMapper, customConfig, "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic");
+        return generalString;
+    }
+
+    /**
+     * 使用给定的API来获取验证码图片中的问题
      *
      * @param bufferedImage 要解析的BufferedImage
      * @return
      * @throws Exception
      */
-    public static String getJpegQuestion(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, BufferedImage bufferedImage) throws Exception {
-
+    public static String getJpegQuestion(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, BufferedImage bufferedImage,
+                                         ObjectMapper objectMapper, CustomConfig customConfig, String urlNoParam) throws Exception {
         // 识别文字
-        String url = String.format("https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token=%s",
-                baiduTokenVO.getAccessToken());
+        String url = String.format(urlNoParam + "?access_token=%s", baiduTokenVO.getAccessToken());
         HttpEntity httpEntity = HttpEntityUtils.getHttpEntity(MediaType.APPLICATION_FORM_URLENCODED, ImmutableMap.of(
                 "image", changeJpegToBase64(bufferedImage)
         ));
-        OrcResultVO orcResultVO = restTemplate.postForObject(url, httpEntity, OrcResultVO.class);
-        if (orcResultVO.getWordsResultNum() == null || orcResultVO.getWordsResultNum() == 0) {
-            log.error("wordNum = {}, maybe api count limit reached", orcResultVO.getWordsResultNum());
-            return "";
-        }
-        return orcResultVO.getWordsResult().get(0).getWords();
-    }
 
+        // 获取结果
+        JsonNode jsonNode = restTemplate.postForObject(url, httpEntity, JsonNode.class);
+        if (jsonNode.get("error_code") == null) {
+            OrcResultVO orcResultVO = objectMapper.treeToValue(jsonNode, OrcResultVO.class);
+            if (orcResultVO.getWordsResultNum() > 0) {
+                String word = orcResultVO.getWordsResult().get(0).getWords();
+                log.debug("{} get {}", urlNoParam, word);
+                return word;
+            } else {
+                log.debug("wordsResultNum == 0");
+                return "";
+            }
+        } else {
+            // 需要判断出现这种情况是因为免费次数用光了，或者token失效了
+            int errorCode = jsonNode.get("error_code").intValue();
+            if (errorCode == 110) {
+                // token失效，那就获取新的token
+                BaiduTokenVO bt = BaiduAIUtils.getBaiduTokenVO(customConfig, restTemplate);
+                log.info("invalid token {}, then using new token {}", baiduTokenVO.getAccessToken(), bt.getAccessToken());
+                BeanUtils.copyProperties(bt, baiduTokenVO);
+                // 重新获取一遍
+                return getJpegQuestion(baiduTokenVO, restTemplate, bufferedImage, objectMapper, customConfig, urlNoParam);
+            } else if (errorCode == 17) {
+                // 说明免费次数用光了
+                log.debug("{} limit reached", urlNoParam);
+                return "";
+            } else {
+                log.error("unknown error, errorCode={}", errorCode);
+                return "";
+            }
+        }
+
+    }
 
     /**
      * 将JPEG图片转化为base64编码字符串

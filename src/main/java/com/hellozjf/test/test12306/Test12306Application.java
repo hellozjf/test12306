@@ -62,12 +62,7 @@ public class Test12306Application {
 
     @Bean
     public BaiduTokenVO baiduTokenVO() {
-        // 获取识别文字API的token
-        String url = String.format("https://aip.baidubce.com/oauth/2.0/token?grant_type=%s&client_id=%s&client_secret=%s",
-                "client_credentials",
-                customConfig.getClientId(),
-                customConfig.getClientSecret());
-        BaiduTokenVO baiduTokenVO = restTemplate.postForObject(url, null, BaiduTokenVO.class);
+        BaiduTokenVO baiduTokenVO = BaiduAIUtils.getBaiduTokenVO(customConfig, restTemplate);
         log.debug("baiduTokenVO = {}", baiduTokenVO);
         log.debug("token = {}", baiduTokenVO.getAccessToken());
         return baiduTokenVO;
