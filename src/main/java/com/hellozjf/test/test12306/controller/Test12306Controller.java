@@ -101,6 +101,7 @@ public class Test12306Controller {
             String[] s = string.split(";")[0].split("=");
             cookies.put(s[0], s[1]);
         }
+        log.debug("finish /otn/login/init");
 
         // 访问https://kyfw.12306.cn/passport/web/auth/uamtk
         HttpHeaders requestHttpHeaders = new HttpHeaders();
@@ -122,6 +123,7 @@ public class Test12306Controller {
             String[] s = string.split(";")[0].split("=");
             cookies.put(s[0], s[1]);
         }
+        log.debug("finish /passport/web/auth/uamtk");
 
         File jpegFile = null;
         String folderName = null;
@@ -144,6 +146,7 @@ public class Test12306Controller {
                 String[] s = string.split(";")[0].split("=");
                 cookies.put(s[0], s[1]);
             }
+            log.debug("finish /passport/captcha/captcha-image");
 
             // 创建要保存图片的文件夹
             folderName = DateUtils.getFolderName(new Date());
@@ -205,7 +208,7 @@ public class Test12306Controller {
 
         // 出错检查
         if (StringUtils.isEmpty(questionInfoVO.getQuestion())) {
-            return ResultUtils.error(ResultEnum.QUESTION_IS_EMPTY);
+//            return ResultUtils.error(ResultEnum.QUESTION_IS_EMPTY);
         } else if (StringUtils.isEmpty(questionInfoVO.getChoose())) {
             return ResultUtils.error(ResultEnum.ANSWER_IS_EMPTY);
         } else if (StringUtils.isEmpty(questionInfoVO.getFolderName())) {
@@ -249,55 +252,55 @@ public class Test12306Controller {
         JsonNode jsonNode = objectMapper.readTree(responseEntity.getBody());
         if (jsonNode.get("result_code").textValue().equals("4")) {
 
-            // 执行登录操作
-            requestHttpHeaders = new HttpHeaders();
-            for (Map.Entry entry : cookies.entrySet()) {
-                requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
-            }
-            requestHttpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            map = new LinkedMultiValueMap<>();
-            map.add("username", "nbda1121440");
-            map.add("password", "Zjf@1234");
-            map.add("appid", "otn");
-            responseEntity = restTemplate.exchange(
-                    "https://kyfw.12306.cn/passport/web/login",
-                    HttpMethod.POST,
-                    new HttpEntity<>(map, requestHttpHeaders),
-                    String.class
-            );
-            log.debug("response={}", responseEntity.getBody());
-            jsonNode = objectMapper.readTree(responseEntity.getBody());
-            if (jsonNode.get("result_code").intValue() == 0) {
-                // 将结果写入数据库中
-                VerificationCode verificationCode = new VerificationCode();
-                verificationCode.setFolderName(questionInfoVO.getFolderName());
-                verificationCode.setQuestion(questionInfoVO.getQuestion());
-                verificationCode.setChoose(questionInfoVO.getChoose());
-                for (String choose : chooses) {
-                    if (choose.equals("1")) {
-                        verificationCode.setPic00Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("2")) {
-                        verificationCode.setPic01Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("3")) {
-                        verificationCode.setPic02Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("4")) {
-                        verificationCode.setPic03Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("5")) {
-                        verificationCode.setPic10Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("6")) {
-                        verificationCode.setPic11Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("7")) {
-                        verificationCode.setPic12Desc(questionInfoVO.getQuestion());
-                    } else if (choose.equals("8")) {
-                        verificationCode.setPic13Desc(questionInfoVO.getQuestion());
-                    }
+//            // 执行登录操作
+//            requestHttpHeaders = new HttpHeaders();
+//            for (Map.Entry entry : cookies.entrySet()) {
+//                requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
+//            }
+//            requestHttpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+//            map = new LinkedMultiValueMap<>();
+//            map.add("username", "nbda1121440");
+//            map.add("password", "Zjf@1234");
+//            map.add("appid", "otn");
+//            responseEntity = restTemplate.exchange(
+//                    "https://kyfw.12306.cn/passport/web/login",
+//                    HttpMethod.POST,
+//                    new HttpEntity<>(map, requestHttpHeaders),
+//                    String.class
+//            );
+//            log.debug("response={}", responseEntity.getBody());
+//            jsonNode = objectMapper.readTree(responseEntity.getBody());
+//            if (jsonNode.get("result_code").intValue() == 0) {
+            // 将结果写入数据库中
+            VerificationCode verificationCode = new VerificationCode();
+            verificationCode.setFolderName(questionInfoVO.getFolderName());
+            verificationCode.setQuestion(questionInfoVO.getQuestion());
+            verificationCode.setChoose(questionInfoVO.getChoose());
+            for (String choose : chooses) {
+                if (choose.equals("1")) {
+                    verificationCode.setPic00Desc(questionInfoVO.getQuestion());
+                } else if (choose.equals("2")) {
+                    verificationCode.setPic01Desc(questionInfoVO.getQuestion());
+                } else if (choose.equals("3")) {
+                    verificationCode.setPic02Desc(questionInfoVO.getQuestion());
+                } else if (choose.equals("4")) {
+                    verificationCode.setPic03Desc(questionInfoVO.getQuestion());
+                } else if (choose.equals("5")) {
+                    verificationCode.setPic10Desc(questionInfoVO.getQuestion());
+                } else if (choose.equals("6")) {
+                    verificationCode.setPic11Desc(questionInfoVO.getQuestion());
+                } else if (choose.equals("7")) {
+                    verificationCode.setPic12Desc(questionInfoVO.getQuestion());
+                } else if (choose.equals("8")) {
+                    verificationCode.setPic13Desc(questionInfoVO.getQuestion());
                 }
-                verificationCodeRepository.save(verificationCode);
-
-                return getUncheckQuestion(httpSession);
-            } else {
-                return ResultUtils.error(ResultEnum.LOGIN_ERROR);
             }
+            verificationCodeRepository.save(verificationCode);
+
+            return getUncheckQuestion(httpSession);
+//            } else {
+//                return ResultUtils.error(ResultEnum.LOGIN_ERROR);
+//            }
         } else {
             // 执行失败操作
             return ResultUtils.error(ResultEnum.ANSWER_ERROR);
