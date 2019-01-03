@@ -122,29 +122,27 @@
     });
 
     function updateComponents(data) {
-        setTimeout(function () {
-            // 清除问题
-            $('#idInputQuestion').val('');
+        // 清除问题
+        $('#idInputQuestion').val('');
 
-            // 清除选择状态
-            var allIdPic = $('#idPicAll img');
-            for (var i = 0; i < allIdPic.length; i++) {
-                var idPic = $(allIdPic[i]);
-                idPic.removeClass('check')
-            }
+        // 清除选择状态
+        var allIdPic = $('#idPicAll img');
+        for (var i = 0; i < allIdPic.length; i++) {
+            var idPic = $(allIdPic[i]);
+            idPic.removeClass('check')
+        }
 
-            $('#idFolderName').val(data.data.folderName);
-            $('#idInputQuestion').val(data.data.question);
-            $('#idImgQuestion').attr('src', data.data.questionUrl);
-            $('#idImgPic00').attr('src', data.data.pic00Url);
-            $('#idImgPic01').attr('src', data.data.pic01Url);
-            $('#idImgPic02').attr('src', data.data.pic02Url);
-            $('#idImgPic03').attr('src', data.data.pic03Url);
-            $('#idImgPic10').attr('src', data.data.pic10Url);
-            $('#idImgPic11').attr('src', data.data.pic11Url);
-            $('#idImgPic12').attr('src', data.data.pic12Url);
-            $('#idImgPic13').attr('src', data.data.pic13Url);
-        }, 1000);
+        $('#idFolderName').val(data.data.folderName);
+        $('#idInputQuestion').val(data.data.question);
+        $('#idImgQuestion').attr('src', data.data.questionUrl);
+        $('#idImgPic00').attr('src', data.data.pic00Url);
+        $('#idImgPic01').attr('src', data.data.pic01Url);
+        $('#idImgPic02').attr('src', data.data.pic02Url);
+        $('#idImgPic03').attr('src', data.data.pic03Url);
+        $('#idImgPic10').attr('src', data.data.pic10Url);
+        $('#idImgPic11').attr('src', data.data.pic11Url);
+        $('#idImgPic12').attr('src', data.data.pic12Url);
+        $('#idImgPic13').attr('src', data.data.pic13Url);
     }
 
     function initUnanswerQuestion() {
@@ -154,9 +152,9 @@
             dataType: 'json',
             success: function (data) {
                 if (data.code != 0) {
+                    $('#myModal').modal('show');
                     // 说明有错误
                     alert(data.msg);
-                    $('#myModal').modal('show');
                     return;
                 }
                 updateComponents(data);
@@ -243,7 +241,8 @@
             success: function (data) {
                 if (data.code === 0) {
                     $('#idResult').text('回答正确');
-                    updateComponents(data);
+                    //updateComponents(data);
+                    initUnanswerQuestion();
                 } else {
                     $('#idResult').text(data.msg);
                     initUnanswerQuestion();

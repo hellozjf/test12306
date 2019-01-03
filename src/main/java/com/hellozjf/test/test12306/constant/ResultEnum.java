@@ -17,6 +17,8 @@ public enum ResultEnum {
     LOGIN_ERROR(6, "登录失败"),
     CAN_NOT_GET_IMAGE(7, "无法获取问题图片"),
     UNKNOWN_ERROR(8, "未知错误"),
+    REFRESH_TOO_FAST(9, "刷新的频率太快"),
+    WRITE_FILE_ERROR(10, "写入文件出错"),
     ;
 
     Integer code;

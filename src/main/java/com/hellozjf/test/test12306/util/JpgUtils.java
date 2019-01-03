@@ -71,12 +71,12 @@ public class JpgUtils {
      * @return
      * @throws Exception
      */
-    public static String getJpegQuestion(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, File jpegFile,
-                                         ObjectMapper objectMapper, CustomConfig customConfig) throws Exception {
+    public static String getJpegWords(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, File jpegFile,
+                                      ObjectMapper objectMapper, CustomConfig customConfig) throws Exception {
 
         // 获取问题图片
         BufferedImage subImage = JpgUtils.getQuestionImage(jpegFile);
-        return getJpegQuestion(baiduTokenVO, restTemplate, subImage, objectMapper, customConfig);
+        return getJpegWords(baiduTokenVO, restTemplate, subImage, objectMapper, customConfig);
     }
 
     /**
@@ -89,16 +89,16 @@ public class JpgUtils {
      * @return
      * @throws Exception
      */
-    public static String getJpegQuestion(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, BufferedImage bufferedImage,
-                                         ObjectMapper objectMapper, CustomConfig customConfig) throws Exception {
+    public static String getJpegWords(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, BufferedImage bufferedImage,
+                                      ObjectMapper objectMapper, CustomConfig customConfig) throws Exception {
         // 如果能使用精确文字解析，那就使用精确文字解析
-        String accurateString = getJpegQuestion(baiduTokenVO, restTemplate, bufferedImage,
+        String accurateString = getJpegWords(baiduTokenVO, restTemplate, bufferedImage,
                 objectMapper, customConfig, "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic");
         if (!StringUtils.isEmpty(accurateString)) {
             return accurateString;
         }
         // 否则使用一般文字解析
-        String generalString = getJpegQuestion(baiduTokenVO, restTemplate, bufferedImage,
+        String generalString = getJpegWords(baiduTokenVO, restTemplate, bufferedImage,
                 objectMapper, customConfig, "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic");
         return generalString;
     }
@@ -110,8 +110,8 @@ public class JpgUtils {
      * @return
      * @throws Exception
      */
-    public static String getJpegQuestion(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, BufferedImage bufferedImage,
-                                         ObjectMapper objectMapper, CustomConfig customConfig, String urlNoParam) throws Exception {
+    public static String getJpegWords(BaiduTokenVO baiduTokenVO, RestTemplate restTemplate, BufferedImage bufferedImage,
+                                      ObjectMapper objectMapper, CustomConfig customConfig, String urlNoParam) throws Exception {
         // 识别文字
         String url = String.format(urlNoParam + "?access_token=%s", baiduTokenVO.getAccessToken());
         HttpEntity httpEntity = HttpEntityUtils.getHttpEntity(MediaType.APPLICATION_FORM_URLENCODED, ImmutableMap.of(
@@ -139,7 +139,7 @@ public class JpgUtils {
                 log.info("invalid token {}, then using new token {}", baiduTokenVO.getAccessToken(), bt.getAccessToken());
                 BeanUtils.copyProperties(bt, baiduTokenVO);
                 // 重新获取一遍
-                return getJpegQuestion(baiduTokenVO, restTemplate, bufferedImage, objectMapper, customConfig, urlNoParam);
+                return getJpegWords(baiduTokenVO, restTemplate, bufferedImage, objectMapper, customConfig, urlNoParam);
             } else if (errorCode == 17) {
                 // 说明免费次数用光了
                 log.debug("{} limit reached", urlNoParam);

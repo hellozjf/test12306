@@ -3,6 +3,7 @@ package com.hellozjf.test.test12306.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hellozjf.test.test12306.config.CustomConfig;
+import com.hellozjf.test.test12306.constant.DisposeResultEnums;
 import com.hellozjf.test.test12306.constant.PictureNames;
 import com.hellozjf.test.test12306.constant.ResultEnum;
 import com.hellozjf.test.test12306.dataobject.VerificationCode;
@@ -13,7 +14,6 @@ import com.hellozjf.test.test12306.vo.QuestionInfoVO;
 import com.hellozjf.test.test12306.vo.ResultVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
@@ -24,11 +24,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 
+import javax.imageio.ImageIO;
 import javax.servlet.http.HttpSession;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
@@ -89,41 +91,59 @@ public class Test12306Controller {
 
     @GetMapping("/getUncheckQuestion")
     @ResponseBody
-    public ResultVO getUncheckQuestion(HttpSession httpSession) throws Exception {
+    public ResultVO getUncheckQuestion(HttpSession httpSession) {
 
         Map<String, Object> cookies = new HashMap<>();
+        ResponseEntity<String> responseEntity = null;
+        HttpHeaders responseHttpHeaders = null;
+        List<String> setCookies = null;
+        HttpHeaders requestHttpHeaders = null;
 
         // 通过login获取jsessionid，然后通过这个jsessionid去获取图片
-        ResponseEntity<String> responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/otn/login/init", String.class);
-        HttpHeaders responseHttpHeaders = responseEntity.getHeaders();
-        List<String> setCookies = responseHttpHeaders.get(HttpHeaders.SET_COOKIE);
-        for (String string : setCookies) {
-            String[] s = string.split(";")[0].split("=");
-            cookies.put(s[0], s[1]);
-        }
-        log.debug("finish /otn/login/init");
+        do {
+            responseEntity = restTemplate.getForEntity("https://kyfw.12306.cn/otn/login/init", String.class);
+            responseHttpHeaders = responseEntity.getHeaders();
+            setCookies = responseHttpHeaders.get(HttpHeaders.SET_COOKIE);
+            if (setCookies == null) {
+                log.error("setCookies == null");
+                continue;
+            }
+            for (String string : setCookies) {
+                String[] s = string.split(";")[0].split("=");
+                cookies.put(s[0], s[1]);
+            }
+            log.debug("finish /otn/login/init");
+            break;
+        } while (true);
 
         // 访问https://kyfw.12306.cn/passport/web/auth/uamtk
-        HttpHeaders requestHttpHeaders = new HttpHeaders();
-        for (Map.Entry entry : cookies.entrySet()) {
-            requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
-        }
-        requestHttpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add("appid", "otn");
-        responseEntity = restTemplate.exchange(
-                "https://kyfw.12306.cn/passport/web/auth/uamtk",
-                HttpMethod.POST,
-                new HttpEntity<>(map, requestHttpHeaders),
-                String.class
-        );
-        responseHttpHeaders = responseEntity.getHeaders();
-        setCookies = responseHttpHeaders.get("Set-Cookie");
-        for (String string : setCookies) {
-            String[] s = string.split(";")[0].split("=");
-            cookies.put(s[0], s[1]);
-        }
-        log.debug("finish /passport/web/auth/uamtk");
+        do {
+            requestHttpHeaders = new HttpHeaders();
+            for (Map.Entry entry : cookies.entrySet()) {
+                requestHttpHeaders.add(HttpHeaders.COOKIE, entry.getKey() + "=" + entry.getValue());
+            }
+            requestHttpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+            map.add("appid", "otn");
+            responseEntity = restTemplate.exchange(
+                    "https://kyfw.12306.cn/passport/web/auth/uamtk",
+                    HttpMethod.POST,
+                    new HttpEntity<>(map, requestHttpHeaders),
+                    String.class
+            );
+            responseHttpHeaders = responseEntity.getHeaders();
+            setCookies = responseHttpHeaders.get("Set-Cookie");
+            if (setCookies == null) {
+                log.error("setCookies == null");
+                continue;
+            }
+            for (String string : setCookies) {
+                String[] s = string.split(";")[0].split("=");
+                cookies.put(s[0], s[1]);
+            }
+            log.debug("finish /passport/web/auth/uamtk");
+            break;
+        } while (true);
 
         File jpegFile = null;
         String folderName = null;
@@ -142,6 +162,10 @@ public class Test12306Controller {
             );
             responseHttpHeaders = response.getHeaders();
             setCookies = responseHttpHeaders.get("Set-Cookie");
+            if (setCookies == null) {
+                log.error("setCookies == null");
+                continue;
+            }
             for (String string : setCookies) {
                 String[] s = string.split(";")[0].split("=");
                 cookies.put(s[0], s[1]);
@@ -160,7 +184,7 @@ public class Test12306Controller {
                 out.write(bytes);
             } catch (Exception e) {
                 log.error("e = {}", e);
-                throw e;
+                return ResultUtils.error(ResultEnum.WRITE_FILE_ERROR);
             }
 
             // 获取题目图片，并写到当前文件夹的question.jpg中
@@ -177,7 +201,12 @@ public class Test12306Controller {
         // 获取子图
         for (int x = 0; x < 4; x++) {
             for (int y = 0; y < 2; y++) {
-                JpgUtils.writeSubImage(jpegFile, x, y);
+                try {
+                    JpgUtils.writeSubImage(jpegFile, x, y);
+                } catch (Exception e) {
+                    log.error("e = {}", e);
+                    return ResultUtils.error(ResultEnum.WRITE_FILE_ERROR);
+                }
             }
         }
 
@@ -185,8 +214,24 @@ public class Test12306Controller {
         QuestionInfoVO questionInfoVO = new QuestionInfoVO();
         questionInfoVO.setFolderName(folderName);
         questionInfoVO.setQuestionUrl(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.QUESTION);
-        questionInfoVO.setQuestion(JpgUtils.getJpegQuestion(baiduTokenVO, restTemplate, questionImage, objectMapper, customConfig));
-//        questionInfoVO.setQuestion(JpgUtils.getJpegQuestion(baiduTokenVO, restTemplate, questionImage));
+        String jpegQuestion = null;
+        try {
+            jpegQuestion = JpgUtils.getJpegWords(baiduTokenVO, restTemplate, questionImage, objectMapper, customConfig);
+            if (jpegQuestion.equals("")) {
+                // 这里有可能是刷新太快了，或者12306关闭了服务，所以我们要拿整张图去进行查询，看是不是刷新太快了
+                BufferedImage bufImage = ImageIO.read(jpegFile);
+                String words = JpgUtils.getJpegWords(baiduTokenVO, restTemplate, bufImage, objectMapper, customConfig);
+                if (words.indexOf("刷新的频率") != -1) {
+                    return ResultUtils.error(ResultEnum.REFRESH_TOO_FAST);
+                }
+            }
+        } catch (Exception e) {
+            log.error("e = {}", e);
+            return ResultUtils.error(ResultEnum.UNKNOWN_ERROR.getCode(),
+                    ResultEnum.UNKNOWN_ERROR.getMessage() + "\n" + e.getMessage());
+        }
+        questionInfoVO.setQuestion(jpegQuestion);
+//        questionInfoVO.setQuestion(JpgUtils.getJpegWords(baiduTokenVO, restTemplate, questionImage));
         questionInfoVO.setPic00Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC00);
         questionInfoVO.setPic01Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC01);
         questionInfoVO.setPic02Url(customConfig.getNetPrefix() + "/" + folderName + "/" + PictureNames.PIC02);
@@ -204,7 +249,7 @@ public class Test12306Controller {
 
     @PostMapping("/answerQuestion")
     @ResponseBody
-    public ResultVO answerQuestion(QuestionInfoVO questionInfoVO, HttpSession httpSession) throws Exception {
+    public ResultVO answerQuestion(QuestionInfoVO questionInfoVO, HttpSession httpSession) {
 
         // 出错检查
         if (StringUtils.isEmpty(questionInfoVO.getQuestion())) {
@@ -249,7 +294,14 @@ public class Test12306Controller {
         log.debug("response={}", responseEntity.getBody());
 
         ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(responseEntity.getBody());
+        JsonNode jsonNode = null;
+        try {
+            jsonNode = objectMapper.readTree(responseEntity.getBody());
+        } catch (IOException e) {
+            log.error("e = {}", e);
+            return ResultUtils.error(ResultEnum.UNKNOWN_ERROR.getCode(),
+                    ResultEnum.UNKNOWN_ERROR.getMessage() + "\n" + e.getMessage());
+        }
         if (jsonNode.get("result_code").textValue().equals("4")) {
 
 //            // 执行登录操作
@@ -275,6 +327,7 @@ public class Test12306Controller {
             VerificationCode verificationCode = new VerificationCode();
             verificationCode.setFolderName(questionInfoVO.getFolderName());
             verificationCode.setQuestion(questionInfoVO.getQuestion());
+            verificationCode.setDisposeResult(DisposeResultEnums.UNDISPOSE.getCode());
             verificationCode.setChoose(questionInfoVO.getChoose());
             for (String choose : chooses) {
                 if (choose.equals("1")) {
@@ -296,8 +349,8 @@ public class Test12306Controller {
                 }
             }
             verificationCodeRepository.save(verificationCode);
-
-            return getUncheckQuestion(httpSession);
+            return ResultUtils.success();
+//            return getUncheckQuestion(httpSession);
 //            } else {
 //                return ResultUtils.error(ResultEnum.LOGIN_ERROR);
 //            }

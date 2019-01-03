@@ -108,7 +108,7 @@ public class Test12306Application {
 
                 File jpegFile = captchaImage(folderName);
                 JpgUtils.getQuestionImage(jpegFile);
-//                    String question = getJpegQuestion(jpegFile);
+//                    String question = getJpegWords(jpegFile);
 //                    log.debug("question = {}", question);
 //                    if (StringUtils.isEmpty(question)) {
 //                        jpegFile.getParentFile().delete();
