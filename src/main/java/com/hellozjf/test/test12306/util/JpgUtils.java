@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.hellozjf.test.test12306.config.CustomConfig;
 import com.hellozjf.test.test12306.constant.PictureNames;
+import com.hellozjf.test.test12306.constant.ResultEnum;
 import com.hellozjf.test.test12306.vo.BaiduTokenVO;
 import com.hellozjf.test.test12306.vo.OrcResultVO;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 /**
  * @author Jingfeng Zhou
@@ -29,6 +32,7 @@ public class JpgUtils {
 
     /**
      * 获取问题图片，并保存在源文件同一目录
+     *
      * @param jpegFile
      * @return
      * @throws Exception
@@ -63,7 +67,6 @@ public class JpgUtils {
     }
 
 
-
     /**
      * 获取验证码图片中的问题
      *
@@ -81,6 +84,7 @@ public class JpgUtils {
 
     /**
      * 先用精确文字解析，再使用一般文字解析
+     *
      * @param baiduTokenVO
      * @param restTemplate
      * @param bufferedImage
@@ -154,6 +158,7 @@ public class JpgUtils {
 
     /**
      * 将JPEG图片转化为base64编码字符串
+     *
      * @param bufferedImage
      * @return
      * @throws Exception
@@ -167,6 +172,7 @@ public class JpgUtils {
 
     /**
      * 获取子图对应的起始点位置
+     *
      * @return
      */
     public static Point getSubImageStartPoint(int x, int y) {
@@ -177,6 +183,7 @@ public class JpgUtils {
 
     /**
      * 获取子图的大小，但是它的长和宽都是一样大的，都是67
+     *
      * @return
      */
     public static Integer getSubImageSize() {
@@ -185,6 +192,7 @@ public class JpgUtils {
 
     /**
      * 获取子图选择的点
+     *
      * @param x
      * @param y
      * @return
@@ -194,5 +202,20 @@ public class JpgUtils {
         point.x += getSubImageSize() / 2;
         point.y += getSubImageSize() / 2;
         return point;
+    }
+
+    /**
+     * 将数据写到full.jpg中
+     * @param folder
+     * @param data
+     * @return
+     * @throws Exception
+     */
+    public static File saveFullJpeg(File folder, byte[] data) throws IOException {
+        File jpegFile = new File(folder, PictureNames.FULL);
+        FileOutputStream out = new FileOutputStream(jpegFile);
+        out.write(data);
+        out.close();
+        return jpegFile;
     }
 }

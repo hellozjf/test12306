@@ -19,6 +19,7 @@ public enum ResultEnum {
     UNKNOWN_ERROR(8, "未知错误"),
     REFRESH_TOO_FAST(9, "刷新的频率太快"),
     WRITE_FILE_ERROR(10, "写入文件出错"),
+    CREATE_FOLDER_ERROR(11, "创建文件夹失败"),
     ;
 
     Integer code;

@@ -219,6 +219,12 @@ public class Test12306Application {
     @Bean
     public CommandLineRunner commandLineRunner() {
         return args -> {
+
+            // 首先从12306获取图片
+
+            // 把获取到的图片发送到http://103.46.128.47:47720/，获取选择结果
+
+            // 将结果发送给12306进行验证
         };
     }
 
