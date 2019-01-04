@@ -21,8 +21,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import javax.imageio.ImageIO;
@@ -121,7 +119,7 @@ public class QuestionAnswerImpl implements IQuestionAnswer {
 
                 // 获取题目图片，并写到当前文件夹的question.jpg中
                 try {
-                    questionImage = JpgUtils.getQuestionImage(jpegFile);
+                    questionImage = JpgUtils.writeQuestionImage(jpegFile);
                 } catch (Exception e) {
                     // 这里可能会失败，失败就再次获取图片
                     // 这里失败有可能是因为编码格式不正确导致的，经常会出现0x22不是jpeg这样的错误
@@ -151,7 +149,7 @@ public class QuestionAnswerImpl implements IQuestionAnswer {
     }
 
     @Override
-    public ResultVO answerQuestion(QuestionInfoVO questionInfoVO, HttpSession httpSession) {
+    public ResultVO answerQuestion(QuestionInfoVO questionInfoVO, boolean bSaveToDatabase, HttpSession httpSession) {
         // 出错检查
         if (StringUtils.isEmpty(questionInfoVO.getChoose())) {
             return ResultUtils.error(ResultEnum.ANSWER_IS_EMPTY);
@@ -169,6 +167,10 @@ public class QuestionAnswerImpl implements IQuestionAnswer {
         // 带上cookie发送图片选择信息
         ResponseEntity<String> responseEntity = service12306.passportCaptchaCaptchaCheck(answerList, cookies);
         log.debug("response={}", responseEntity.getBody());
+        if (responseEntity.getBody() == null) {
+            log.error("responseEntity.getBody() == null");
+            return ResultUtils.error(ResultEnum.UNKNOWN_ERROR);
+        }
 
         // 将选择图片的结果放到一个JsonNode中，这样可以通过JsonNode.get方法判断结果是否正确
         ObjectMapper objectMapper = new ObjectMapper();
@@ -183,7 +185,9 @@ public class QuestionAnswerImpl implements IQuestionAnswer {
 
         if (jsonNode.get("result_code").textValue().equals("4")) {
             // 结果为4，表示正确，那就将结果写入数据库中
-            saveRightAnswer(questionInfoVO, chooses);
+            if (bSaveToDatabase) {
+                saveRightAnswer(questionInfoVO, chooses);
+            }
             return ResultUtils.success();
         } else {
             // 执行失败操作

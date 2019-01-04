@@ -2,6 +2,8 @@ package com.hellozjf.test.test12306.vo;
 
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * @author hellozjf
  */

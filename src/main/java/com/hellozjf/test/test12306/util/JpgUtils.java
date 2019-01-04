@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.hellozjf.test.test12306.config.CustomConfig;
 import com.hellozjf.test.test12306.constant.PictureNames;
-import com.hellozjf.test.test12306.constant.ResultEnum;
 import com.hellozjf.test.test12306.vo.BaiduTokenVO;
 import com.hellozjf.test.test12306.vo.OrcResultVO;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +29,25 @@ import java.io.IOException;
 @Slf4j
 public class JpgUtils {
 
+    public static File getFullJpeg(File folder) {
+        return new File(folder, PictureNames.FULL);
+    }
+
+    /**
+     * 将数据写到full.jpg中
+     * @param folder
+     * @param data
+     * @return
+     * @throws Exception
+     */
+    public static File saveFullJpeg(File folder, byte[] data) throws IOException {
+        File jpegFile = new File(folder, PictureNames.FULL);
+        FileOutputStream out = new FileOutputStream(jpegFile);
+        out.write(data);
+        out.close();
+        return jpegFile;
+    }
+
     /**
      * 获取问题图片，并保存在源文件同一目录
      *
@@ -37,7 +55,7 @@ public class JpgUtils {
      * @return
      * @throws Exception
      */
-    public static BufferedImage getQuestionImage(File jpegFile) throws Exception {
+    public static BufferedImage writeQuestionImage(File jpegFile) throws Exception {
 
         BufferedImage bufImage = ImageIO.read(jpegFile);
 
@@ -68,9 +86,13 @@ public class JpgUtils {
 
 
     /**
-     * 获取验证码图片中的问题
+     * 先用精确文字解析，再使用一般文字解析
      *
-     * @param jpegFile 要解析的jpg文件
+     * @param baiduTokenVO
+     * @param restTemplate
+     * @param jpegFile
+     * @param objectMapper
+     * @param customConfig
      * @return
      * @throws Exception
      */
@@ -78,7 +100,7 @@ public class JpgUtils {
                                       ObjectMapper objectMapper, CustomConfig customConfig) throws Exception {
 
         // 获取问题图片
-        BufferedImage subImage = JpgUtils.getQuestionImage(jpegFile);
+        BufferedImage subImage = JpgUtils.writeQuestionImage(jpegFile);
         return getJpegWords(baiduTokenVO, restTemplate, subImage, objectMapper, customConfig);
     }
 
@@ -202,20 +224,5 @@ public class JpgUtils {
         point.x += getSubImageSize() / 2;
         point.y += getSubImageSize() / 2;
         return point;
-    }
-
-    /**
-     * 将数据写到full.jpg中
-     * @param folder
-     * @param data
-     * @return
-     * @throws Exception
-     */
-    public static File saveFullJpeg(File folder, byte[] data) throws IOException {
-        File jpegFile = new File(folder, PictureNames.FULL);
-        FileOutputStream out = new FileOutputStream(jpegFile);
-        out.write(data);
-        out.close();
-        return jpegFile;
     }
 }

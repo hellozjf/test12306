@@ -12,10 +12,10 @@ import com.hellozjf.test.test12306.dataobject.VerificationCode;
 import com.hellozjf.test.test12306.repository.StationRepository;
 import com.hellozjf.test.test12306.repository.StationVersionRepository;
 import com.hellozjf.test.test12306.repository.VerificationCodeRepository;
+import com.hellozjf.test.test12306.service.IQuestionAnswer;
 import com.hellozjf.test.test12306.util.*;
 import com.hellozjf.test.test12306.vo.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -27,12 +27,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.http.*;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import javax.imageio.ImageIO;
+import javax.servlet.http.HttpSession;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DateFormat;
@@ -43,8 +46,16 @@ import java.util.regex.Pattern;
 
 @SpringBootApplication
 @EnableJpaAuditing
+@EnableScheduling
 @Slf4j
 public class Test12306Application {
+
+    @Bean
+    public CommandLineRunner commandLineRunner() {
+        return args -> {
+
+        };
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(Test12306Application.class, args);
@@ -89,6 +100,9 @@ public class Test12306Application {
     @Autowired
     private VerificationCodeRepository verificationCodeRepository;
 
+    @Autowired
+    private IQuestionAnswer questionAnswer;
+
     /**
      * 获取图片并存放在文件夹中
      */
@@ -107,7 +121,7 @@ public class Test12306Application {
                 verificationCode.setFolderName(folderName);
 
                 File jpegFile = captchaImage(folderName);
-                JpgUtils.getQuestionImage(jpegFile);
+                JpgUtils.writeQuestionImage(jpegFile);
 //                    String question = getJpegWords(jpegFile);
 //                    log.debug("question = {}", question);
 //                    if (StringUtils.isEmpty(question)) {
@@ -214,18 +228,6 @@ public class Test12306Application {
             }
 
         }
-    }
-
-    @Bean
-    public CommandLineRunner commandLineRunner() {
-        return args -> {
-
-            // 首先从12306获取图片
-
-            // 把获取到的图片发送到http://103.46.128.47:47720/，获取选择结果
-
-            // 将结果发送给12306进行验证
-        };
     }
 
     /**

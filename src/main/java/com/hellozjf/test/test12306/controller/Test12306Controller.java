@@ -36,6 +36,6 @@ public class Test12306Controller {
     @PostMapping("/answerQuestion")
     @ResponseBody
     public ResultVO answerQuestion(QuestionInfoVO questionInfoVO, HttpSession httpSession) {
-        return questionAnswer.answerQuestion(questionInfoVO, httpSession);
+        return questionAnswer.answerQuestion(questionInfoVO, true, httpSession);
     }
 }

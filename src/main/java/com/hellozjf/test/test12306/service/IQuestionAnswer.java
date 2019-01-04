@@ -10,6 +10,19 @@ import javax.servlet.http.HttpSession;
  */
 public interface IQuestionAnswer {
 
+    /**
+     * 供Controller调用的getQuestion方法
+     * @param httpSession
+     * @return
+     */
     ResultVO getQuestion(HttpSession httpSession);
-    ResultVO answerQuestion(QuestionInfoVO questionInfoVO, HttpSession httpSession);
+
+    /**
+     * 供Controller调用的answerQuestion方法
+     * @param questionInfoVO
+     * @param httpSession
+     * @param bSaveToDatabase
+     * @return
+     */
+    ResultVO answerQuestion(QuestionInfoVO questionInfoVO, boolean bSaveToDatabase, HttpSession httpSession);
 }
