@@ -42,7 +42,7 @@ public class AutoCheckSchedule {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Scheduled(fixedRate = 60000)
+//    @Scheduled(fixedRate = 60000)
     public void check() {
         try {
             HttpSession httpSession = new MockHttpSession();
