@@ -19,8 +19,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -76,20 +79,17 @@ public class DownloadController {
                 for (VerificationCode verificationCode : verificationCodeList) {
                     // 要保存的文件
                     File file = new File(questionFolder, verificationCode.getFolderName() + ".jpg");
-                    log.debug("download {}", file.getAbsolutePath());
+//                    log.debug("download {}", file.getAbsolutePath());
                     URL url = new URL(customConfig.getNetPrefix() + "/" + verificationCode.getFolderName() + "/" + PictureNames.QUESTION);
 
                     // 把网络图片拷贝到本地来
                     BufferedImage img = ImageIO.read(url);
-                    log.debug("file={} width={} height={}", file.getName(), img.getWidth(), img.getHeight());
+//                    log.debug("file={} width={} height={}", file.getName(), img.getWidth(), img.getHeight());
 
-                    // 去掉width为94的图片，要从数据库里删掉它
-//                    if (img.getWidth() == 94) {
-//                        verificationCodeRepository.delete(verificationCode);
-//                        continue;
-//                    }
-
-                    ImageIO.write(img, "jpg", file);
+                    // 只有当图片在问题文件夹中不存在时，才保存
+                    if (! repetition(questionFolder, img)) {
+                        ImageIO.write(img, "jpg", file);
+                    }
                 }
             }
         }
@@ -101,6 +101,37 @@ public class DownloadController {
 //        return new ResponseEntity<byte[]>(null,
 //                headers, HttpStatus.CREATED);
         return ResultUtils.success();
+    }
+
+    /**
+     * 判断文件夹中有没有相同的图片
+     * @param questionFolder
+     * @param img
+     * @return
+     */
+    private boolean repetition(File questionFolder, BufferedImage img) {
+        try {
+            File[] files = questionFolder.listFiles();
+            for (File file : files) {
+                BufferedImage bufferedImage = ImageIO.read(file);
+
+                ByteArrayOutputStream origin = new ByteArrayOutputStream();
+                ByteArrayOutputStream target = new ByteArrayOutputStream();
+                ImageIO.write(bufferedImage, "jpg", origin);
+                ImageIO.write(img, "jpg", target);
+//                log.debug("originFileName:{}", file.getName());
+//                log.debug("origin:{}", Arrays.toString(origin.toByteArray()));
+//                log.debug("target:{}", Arrays.toString(target.toByteArray()));
+                if (Arrays.equals(origin.toByteArray(), target.toByteArray())) {
+                    log.debug("equals");
+                    return true;
+                }
+            }
+            return false;
+        } catch (IOException e) {
+            log.error("e = {}", e);
+            return true;
+        }
     }
 
     /**
@@ -182,14 +213,17 @@ public class DownloadController {
 
                         // 要保存的文件
                         File file = new File(questionFolder, verificationCode.getFolderName() + "_" + picName);
-                        log.debug("download {}", file.getAbsolutePath());
+//                        log.debug("download {}", file.getAbsolutePath());
                         URL url = new URL(customConfig.getNetPrefix() + "/" + verificationCode.getFolderName() + "/" + picName);
 
                         // 把网络图片拷贝到本地来
                         BufferedImage img = ImageIO.read(url);
-                        log.debug("file={} width={} height={}", file.getName(), img.getWidth(), img.getHeight());
+//                        log.debug("file={} width={} height={}", file.getName(), img.getWidth(), img.getHeight());
 
-                        ImageIO.write(img, "jpg", file);
+                        // 只有当图片在问题文件夹中不存在时，才保存
+                        if (! repetition(questionFolder, img)) {
+                            ImageIO.write(img, "jpg", file);
+                        }
                     }
                 }
             }

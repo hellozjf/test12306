@@ -53,7 +53,19 @@ public class Test12306Application {
     @Bean
     public CommandLineRunner commandLineRunner() {
         return args -> {
-
+//            File f1 = new File("C:\\Users\\Administrator\\AppData\\Local\\Temp\\18acf16ee1ad46fb81f0eac8934c143c\\安全帽\\20181231103224131_pic00.jpg");
+//            File f2 = new File("C:\\Users\\Administrator\\AppData\\Local\\Temp\\18acf16ee1ad46fb81f0eac8934c143c\\安全帽\\20181231103224131_pic03.jpg");
+//            BufferedImage bufferedImage1 = ImageIO.read(f1);
+//            BufferedImage bufferedImage2 = ImageIO.read(f2);
+//
+//            ByteArrayOutputStream origin = new ByteArrayOutputStream();
+//            ByteArrayOutputStream target = new ByteArrayOutputStream();
+//            ImageIO.write(bufferedImage1, "jpg", origin);
+//            ImageIO.write(bufferedImage2, "jpg", target);
+//
+//            byte[] bytes1 = origin.toByteArray();
+//            byte[] bytes2 = origin.toByteArray();
+//            log.debug("equals={}", Arrays.equals(bytes1, bytes2));
         };
     }
 
